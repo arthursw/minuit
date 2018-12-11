@@ -168,6 +168,10 @@ let main = ()=> {
 
 
         let nanoKontrol = WebMidi.getInputByName("nanoKONTROL SLIDER/KNOB")
+        
+        if(!nanoKontrol) {
+            nanoKontrol = WebMidi.getInputByName("nanoKONTROL SLIDERKNOB")
+        }
 
         if(nanoKontrol) {
             // var keyboard = WebMidi.getInputByName("Axiom Pro 25");
@@ -235,9 +239,9 @@ let main = ()=> {
 
         let keyboard = WebMidi.getInputByName("SV1 KEYBOARD")
         
-        if(!keyboard) {
-            keyboard = WebMidi.getInputByName("VMini Out")
-        }
+        // if(!keyboard) {
+        //     keyboard = WebMidi.getInputByName("VMini Out")
+        // }
 
         if(!keyboard) {
             keyboard = WebMidi.getInputByName("VMPK Output")

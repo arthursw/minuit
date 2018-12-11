@@ -1,118 +1,157 @@
-var canvas = document.getElementById('canvas');
-paper.setup(canvas);
+let scripts = [
+    'titles',
+    'concentricCircles',
+    'lines',
+    'painting',
+    'chords',
+    'shader-grid',
+    'shader-checker',
+    'shader-fractal',
+    'shader-geom'
+]
 
-let parameters = {
-    circleSize: 3,
-    // circleStrokeWidth: 6
-    pathWidth: 1,
-    distMax: 200
+let scriptsOrder = [0, 0, 8, 0, 7, 0, 0]
+let currentScriptOrderIndex = 0
+let currentTitleIndex = 0
+
+let module = null
+let soundModule = null
+let socket = null
+
+let send = (type, data)=> {
+    let message = { type: type, data: data }
+    socket.send(JSON.stringify(message))
 }
 
-let noteMin = 21
-let noteMax = 108
-let noteNumber = 88
+let onMessage = (event)=> {
+    let json = JSON.parse(event.data);
 
-let circles = []
-let lastCircles = []
-
-paper.view.onFrame = function(event) {
-    for(let i=0 ; i<circles.length ; i++) {
-        let circle = circles[i];
-        circle.position.y -= circle.data.speed
-        if(circle.data.segment != null) {
-            circle.data.segment.point.y -= circle.data.speed
+    let type = json.type;
+    let data = json.data;
+    console.log(json)
+    if(type == 'file-changed' && data.eventType == 'change') {
+        if(module.fileChanged) {
+            console.log(data.content)
+            module.fileChanged(data.content)
         }
-        circle.data.speed *= 1.02
-        if(circle.position.y < paper.view.bounds.top - 300) {
-            if(circle.data.segment != null) {
-                circle.data.path.removeSegment(circle.data.segment.index)
-                if(circle.data.path.segments.length == 0) {
-                    circle.data.path.remove()
-                }
+    } else if(type == 'sound-file-changed') {
+        window.location.reload(false); 
+        // loadSoundModule(data.filename.replace('.js', ''))
+        // soundModule.deactivate()
+        // eval(data.content)
+    }
+}
+
+let onWebSocketOpen = (event)=> {
+    // send('is-connected')
+}
+
+let onWebSocketClose = (event)=> {
+    console.error('WebSocket disconnected')
+}
+
+let onWebSocketError = (event)=> {
+    console.error('WebSocket error')
+    // console.error(event)
+}
+
+let loadSoundModule = (name)=> {
+    console.log('loadSoundModule ', name)
+    import('./js/sounds/' + name + '.js')
+        .then(m => {
+
+            if(soundModule) {
+                soundModule.deactivate()
             }
-            circle.remove()
-            circles.splice(i, 1)
-            i--
+            soundModule = m
+            console.log('activate ', name)
+            soundModule.activate()
+        })
+        .catch(err => {
+            console.log(err.message)
+            console.log(err)
+        });
+}
+
+let loadModule = (name, numTitles)=> {
+    if(!numTitles) {
+        numTitles = 0
+    }
+    let shader = null
+    let moduleName = name
+    if(name.indexOf('shader-') == 0) {
+        shader = name.replace('shader-', '')
+        moduleName = 'shaders'
+    }
+    import('./js/' + moduleName + '.js')
+            .then(m => {
+                if(module) {
+                    module.deactivate()
+                }
+                module = m
+                module.activate(shader, numTitles)
+            })
+
+    loadSoundModule(name)
+
+}
+
+let noteOn = (event)=> {
+    if(module) {
+        module.noteOn(event)
+    }
+    if(soundModule) {
+        soundModule.noteOn(event)
+    }
+}
+
+let noteOff = (event)=> {
+    if(module) {
+        module.noteOff(event)
+    }
+    if(soundModule) {
+        soundModule.noteOff(event)
+    }
+}
+
+function animate() {
+    requestAnimationFrame( animate );
+    if(module != null) {
+        module.render();
+    }
+    if(soundModule != null) {
+        soundModule.render()
+    }
+}
+
+let mouseDown = false;
+
+let onMouseDown = (event)=> {
+    mouseDown = true
+}
+
+let onMouseMove = (event)=> {
+    if(mouseDown && module && module.controlchange) {
+        let x = 128 * event.clientX / window.innerWidth
+        let y = 128 * event.clientY / window.innerHeight
+        module.controlchange({controller: {number: 14+0}, data: [x, x, x]})
+        module.controlchange({controller: {number: 14+1}, data: [y, y, y]})
+        
+        if(soundModule && soundModule.controlchange) {
+            soundModule.controlchange({controller: {number: 14+0}, data: [x, x, x]})
+            soundModule.controlchange({controller: {number: 14+1}, data: [y, y, y]})
         }
     }
 }
 
-let noteOn = function(e) {
-
-    let circle = new paper.Path.Circle(paper.view.bounds.bottomLeft.add(
-        paper.view.size.width * ((e.note.number - noteMin) / noteNumber), 0), parameters.circleSize)
-    circle.fillColor = 'black'
-    // circle.strokeWidth = e.velocity * parameters.circleStrokeWidth
-    circle.data.noteNumber = e.note.number
-    
-    circle.data = { speed: 2, path: null, segment: null}
-    
-    let minDistance = parameters.distMax * parameters.distMax
-    let closestCircle = null
-
-    for(let c of circles) {
-        let distance = circle.position.getDistance(c.position, true)
-        console.log(distance)
-        if(distance < minDistance) {
-            minDistance = distance
-            closestCircle = c
-            console.log("min: " + distance + ", closestCircle: " + c.position)
-        }
-    }
-    circles.push(circle)
-    if(closestCircle != null) {
-        if(closestCircle.data.path != null) {
-            let i = closestCircle.data.segment.index
-            closestCircle.data.path.insert(i, circle.position)
-            circle.data.segment = closestCircle.data.path.segments[i]
-            circle.data.path = closestCircle.data.path
-        } else {
-            closestCircle.data.path = new paper.Path()
-            closestCircle.data.path.strokeColor = 'black'
-            closestCircle.data.path.strokeWidth = parameters.pathWidth
-            closestCircle.data.path.add(closestCircle.position)
-            closestCircle.data.segment = closestCircle.data.path.lastSegment
-            closestCircle.data.path.add(circle.position)
-            circle.data.path = closestCircle.data.path
-            circle.data.segment = closestCircle.data.path.lastSegment
-        }
-    }
+let onMouseUp = (event)=> {
+    mouseDown = false
 }
 
-// document.addEventListener('keydown', function(e) {
-//     noteOn({note: { number: e.which} })
-// }, false)
+let main = ()=> {
 
 
-/*
-
-function getRandomInt(max) {
-  return Math.floor(Math.random() * Math.floor(max));
-}
-
-function superPlay(chord){
-    var octave = getRandomInt(3) + 3;
-    var note = (chord[getRandomInt(chord.length)]);
-    if(getRandomInt(3) == 0)
-        WebMidi.outputs[1].playNote((note +  octave));
-}
-
-
-setInterval(superPlay, 200, "CEG");
-
-
-// for (const [i, value] of ['C', 'E', 'G'].entries()) {
-
-for (const [i, value] of "CEGFEGAAAFFAA".split("").entries()) {
-    WebMidi.outputs[1].playNote((value +  i));
-    //WebMidi.outputs[1].playNote((i+64));
-    //WebMidi.outputs[1].playNote((3*i+64));
-    //WebMidi.outputs[1].playNote((5*i+64));
-
-    }
-*/
-
-document.addEventListener("DOMContentLoaded", function () {
+    module = loadModule(scripts[scriptsOrder[currentScriptOrderIndex]])
 
     WebMidi.enable(function(err) {
 
@@ -123,42 +162,168 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log(WebMidi.inputs);
         console.log(WebMidi.outputs);
 
-        // WebMidi.inputs.forEach(function (input) {
-        //   input.addListener("noteon", function (e) {
-        //     console.log(e);
-        //   })
-        // });
+        WebMidi.inputs.forEach(function (input) {
+          console.log(input.name);
+        });
 
-        // var kbd = WebMidi.getInputByName("Axiom Pro 25");
 
-        if(WebMidi.inputs.length > 0) {
+        let nanoKontrol = WebMidi.getInputByName("nanoKONTROL SLIDER/KNOB")
 
-            var kbd = WebMidi.inputs[0];
+        if(nanoKontrol) {
+            // var keyboard = WebMidi.getInputByName("Axiom Pro 25");
 
-            
-            // var toSynth = WebMidi.getOutputByName("MIDI Monitor");
+            // let eventNames = ["keyaftertouch",
+            //             "controlchange",
+            //             "channelmode",
+            //             "programchange",
+            //             "channelaftertouch",
+            //             "pitchbend",
+            //             "sysex",
+            //             "timecode",
+            //             "songposition",
+            //             "songselect",
+            //             "tuningrequest",
+            //             "clock",
+            //             "start",
+            //             "continue",
+            //             "stop",
+            //             "reset", 
+            //             // "midimessage",
+            //             "unknownsystemmessage"];
 
-            kbd.addListener('noteon', "all", function (e) {
-                console.log(e);
-                // toSynth.playNote(e.note.number, 8);
-                noteOn(e);
-            });
+            // for(let eventName of eventNames) {
+            //     // console.log(eventName)
+            //     nanoKontrol.addListener(eventName, "all", function (e) {
+            //         console.log("Received " + eventName + " message.", e);
+            //     });
+            // }
 
-            kbd.addListener('noteoff', "all", function (e) {
-                console.log(e);
-                // toSynth.stopNote(e.note.number, 8);
-                // let findNote = (circle)=> {
-                //     return circle.data.noteNumber == e.note.number
-                // }
-                // let circleIndex = circles.findIndex(findNote)
-                // if(circleIndex >= 0) {
-                //     circles[circleIndex].remove()
-                //     circles.splice(circleIndex, 1)
-                // }
+
+            // Listen to control change message on all channels
+            nanoKontrol.addListener('controlchange', "all", function (e) {
+                console.log("channel: ", e.channel);
+                console.log("controller:", e.controller.number);
+                console.log("data:", e.data.toString());
+
+                if(e.channel == 1) {
+
+                    if(e.controller.number == 47 && e.data[2] == 127) {             // previous
+                        currentScriptOrderIndex = Math.max(currentScriptOrderIndex-1, 0)
+                        if(scriptsOrder[currentScriptOrderIndex] == 0) {
+                            currentTitleIndex = Math.max(currentTitleIndex-1, 0)
+                        }
+                        loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
+                    } else if(e.controller.number == 48 && e.data[2] == 127) {      // next
+                        currentScriptOrderIndex = Math.min(currentScriptOrderIndex+1, scriptsOrder.length - 1)
+                        if(scriptsOrder[currentScriptOrderIndex] == 0) {
+                            currentTitleIndex = Math.min(currentTitleIndex+1, 4)
+                        }
+                        loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
+                    }
+
+                }
+                
+                if(module.controlchange) {
+                    module.controlchange(e)
+                }
+                if(soundModule && soundModule.controlchange) {
+                    soundModule.controlchange(e)
+                }
             });
 
         }
 
+        let keyboard = WebMidi.getInputByName("SV1 KEYBOARD")
+        
+        if(!keyboard) {
+            keyboard = WebMidi.getInputByName("VMini Out")
+        }
+
+        if(!keyboard) {
+            keyboard = WebMidi.getInputByName("VMPK Output")
+        }
+        
+
+        if(keyboard) {
+            
+
+            keyboard.addListener('noteon', "all", function (e) {
+                noteOn({ detail: e })
+                
+            });
+
+            keyboard.addListener('noteoff', "all", function (e) {
+                noteOff({ detail: e })
+            });
+
+            keyboard.addListener('programchange', "all", function (e) {
+                console.log("Received 'programchange' message.", e);
+            });
+
+
+            keyboard.addListener('controlchange', "all", function (e) {
+                console.log("channel: ", e.channel);
+                console.log("controller:", e.controller.number);
+                console.log("data:", e.data.toString());
+            })
+        }
     })
 
-});
+    document.addEventListener('noteOn', noteOn, false)
+    document.addEventListener('noteOff', noteOff, false)
+
+    window.addEventListener("mouseup", onMouseUp)
+    window.addEventListener("mousemove", onMouseMove)
+    window.addEventListener("mousedown", onMouseDown)
+
+    var canvas = document.getElementById('canvas');
+    paper.install(window);
+    paper.setup(canvas);
+
+    let clearCanvas = ()=> {
+        paper.project.clear()
+    }
+
+
+    var gui = new dat.GUI({hideable: true});
+
+    gui.add({ name: scripts[scriptsOrder[currentScriptOrderIndex]] }, 'name', scripts).onFinishChange((value)=> {
+        if(value != null && value != '') {
+            clearCanvas();
+            
+            loadModule(value)
+
+        }
+    })
+
+    let channels = {}
+    for(let i=0 ; i<9 ; i++) {
+        let name = 'channel' + i
+        channels[name] = 0
+        gui.add(channels, name, 0, 128, 1).onFinishChange((value)=> {
+            if(module.controlchange) {
+                module.controlchange({ controller: { number: 14+i }, data: [value, value, value] })
+            }
+        })
+    }
+
+    window.gui = gui;
+
+    // import('./js/synth.js').then(m => m.createSynth(gui))
+
+    let parameters = {}
+
+    animate();
+
+    socket = new WebSocket('ws://localhost:' + 4568)
+    socket.addEventListener('message',  onMessage)
+    socket.addEventListener('open',  onWebSocketOpen)
+    socket.addEventListener('close',  onWebSocketClose)
+    socket.addEventListener('error',  onWebSocketError)
+}
+
+document.addEventListener("DOMContentLoaded", main)
+
+
+
+

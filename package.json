@@ -1,0 +1,28 @@
+{
+  "name": "minuit",
+  "version": "1.0.0",
+  "description": "[minuit](https://arthursw.github.io/minuit/)",
+  "main": "main.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arthursw/minuit.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arthursw/minuit/issues"
+  },
+  "homepage": "https://github.com/arthursw/minuit#readme",
+  "dependencies": {
+    "ws": "^6.1.0"
+  },
+  "devDependencies": {
+    "midi-player-js": "^2.0.4"
+  }
+}

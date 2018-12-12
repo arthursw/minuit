@@ -68,6 +68,12 @@ let loadSoundModule = (name)=> {
             soundModule.activate()
         })
         .catch(err => {
+
+            if(soundModule) {
+                soundModule.deactivate()
+                soundModule = null
+            }
+
             console.log(err.message)
             console.log(err)
         });
@@ -131,21 +137,45 @@ let onMouseDown = (event)=> {
 }
 
 let onMouseMove = (event)=> {
-    if(mouseDown && module && module.controlchange) {
-        let x = 128 * event.clientX / window.innerWidth
-        let y = 128 * event.clientY / window.innerHeight
-        module.controlchange({controller: {number: 14+0}, data: [x, x, x]})
-        module.controlchange({controller: {number: 14+1}, data: [y, y, y]})
-        
-        if(soundModule && soundModule.controlchange) {
-            soundModule.controlchange({controller: {number: 14+0}, data: [x, x, x]})
-            soundModule.controlchange({controller: {number: 14+1}, data: [y, y, y]})
-        }
+    if(mouseDown && module && module.mouseMove) {
+        module.mouseMove(event)
     }
+    if(mouseDown && soundModule && soundModule.mouseMove) {
+        soundModule.mouseMove(event)
+    }
+    // if(mouseDown && module && module.controlchange) {
+    //     let x = 128 * event.clientX / window.innerWidth
+    //     let y = 128 * event.clientY / window.innerHeight
+    //     module.controlchange({controller: {number: 14+0}, data: [x, x, x]})
+    //     module.controlchange({controller: {number: 14+1}, data: [y, y, y]})
+        
+    //     if(soundModule && soundModule.controlchange) {
+    //         soundModule.controlchange({controller: {number: 14+0}, data: [x, x, x]})
+    //         soundModule.controlchange({controller: {number: 14+1}, data: [y, y, y]})
+    //     }
+    // }
 }
 
 let onMouseUp = (event)=> {
     mouseDown = false
+}
+
+let onKeyDown = (event)=> {
+    if(module && module.keyDown) {
+        module.keyDown(event)
+    }
+    if(soundModule && soundModule.keyDown) {
+        soundModule.keyDown(event)
+    }
+}
+
+let onKeyUp = (event)=> {
+    if(module && module.keyUp) {
+        module.keyUp(event)
+    }
+    if(soundModule && soundModule.keyUp) {
+        soundModule.keyUp(event)
+    }
 }
 
 let main = ()=> {
@@ -175,6 +205,14 @@ let main = ()=> {
 
         if(!nanoKontrol) {
             nanoKontrol = WebMidi.getInputByName("nanoKONTROL")
+        }
+
+        if(!nanoKontrol) {
+            nanoKontrol = WebMidi.getInputByName("USB Axiom 49 Port 1")
+        }
+
+        if(!nanoKontrol) {
+            nanoKontrol = WebMidi.getInputByName("USB Axiom 49 Port 2")
         }
 
         if(nanoKontrol) {
@@ -243,14 +281,21 @@ let main = ()=> {
 
         let keyboard = WebMidi.getInputByName("SV1 KEYBOARD")
         
-        // if(!keyboard) {
-        //     keyboard = WebMidi.getInputByName("VMini Out")
-        // }
+        if(!keyboard) {
+            keyboard = WebMidi.getInputByName("VMini Out")
+        }
 
         if(!keyboard) {
             keyboard = WebMidi.getInputByName("VMPK Output")
         }
         
+        if(!keyboard) {
+            keyboard = WebMidi.getInputByName("USB Axiom 49 Port 1")
+        }
+
+        if(!keyboard) {
+            keyboard = WebMidi.getInputByName("USB Axiom 49 Port 2")
+        }
 
         if(keyboard) {
             
@@ -283,6 +328,9 @@ let main = ()=> {
     window.addEventListener("mouseup", onMouseUp)
     window.addEventListener("mousemove", onMouseMove)
     window.addEventListener("mousedown", onMouseDown)
+
+    window.addEventListener("keydown", onKeyDown)
+    window.addEventListener("keyup", onKeyUp)
 
     var canvas = document.getElementById('canvas');
     paper.install(window);

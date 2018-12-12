@@ -2,7 +2,10 @@ import { scene, renderer, bounds, renderThreeJS, initializeThreeJS, container, r
 
 var uniforms, material, mesh;
 
-var startTime = Date.now();
+let startTime = Date.now();
+let currentTime = startTime;
+let maxTime = 60.0;
+let pause = false;
 
 let initialized = false;
 
@@ -13,7 +16,7 @@ export let channels = []
 let signals = []
 
 for(let i=0 ; i<9 ; i++) {
-    let signal = new Tone.Signal(1)
+    let signal = new Tone.Signal(0)
     signals.push(signal)
     channels.push(signal.value)
 }
@@ -31,7 +34,7 @@ async function createMaterial(fragmentShader) {
     height = window.innerHeight;
 
     uniforms = {
-        time: { type: "f", value: 1.0 },
+        time: { type: "f", value: currentTime },
         resolution: { type: "v2", value: new THREE.Vector2(width, height) },
         channels: { type: "f", value: channels }
     };
@@ -86,6 +89,7 @@ export function activate(shaderName) {
         }
 	}
     startTime = Date.now()
+    currentTime = startTime / 1000.0;
 }
 
 export function deactivate() {
@@ -94,13 +98,21 @@ export function deactivate() {
 	// console.log(renderer.domElement.style.display)
 }
 
+function updateTime() {
+    var elapsedMilliseconds = Date.now() - startTime;
+    var elapsedSeconds = elapsedMilliseconds / 1000.;
+    currentTime = elapsedSeconds;
+    uniforms.time.value = elapsedSeconds;
+}
+
 export function render() {
 	if(renderer == null || uniforms == null) {
 		return
 	}
-    var elapsedMilliseconds = Date.now() - startTime;
-    var elapsedSeconds = elapsedMilliseconds / 1000.;
-    uniforms.time.value = 60. * elapsedSeconds;
+    
+    if(!pause) {
+        updateTime()
+    }
     
     for(let i = 0 ; i<channels.length ; i++) {
         channels[i] = signals[i].value
@@ -144,6 +156,22 @@ export async function controlchange(e) {
     if(signalIndex >= 0 && signalIndex < signals.length) {
         signals[signalIndex].linearRampTo(e.data[2], 1.5)
     }
+}
+
+export function mouseMove(event) {
+    let x = event.clientX / window.innerWidth
+    startTime = Date.now() - maxTime * 1000 * x
+    updateTime()
+}
+
+export function keyDown(event) {
+    if(event.key == ' ') {
+        pause = !pause
+    }
+}
+
+export function keyUp(event) {
+
 }
 
 document.addEventListener('resizeThreeJS', resize, false)

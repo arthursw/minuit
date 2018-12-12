@@ -221,15 +221,28 @@ void main()
 	
 	// Good
 	// color = smoothstep(-0.01, 0.01, sin(-PI/2.0+pow(1.31, 140.0*channels[0]/128.0)*0.1*dot(q, q)));
-	if(channels[1] < 0.5) {
-		color = smoothstep(-0.01, 0.01, sin(-PI/2.0+time*20.1*dot(q, q)));
-	} else {
-		color = smoothstep(-0.01, 0.01, sin(-PI/2.0+pow(time, 2.0)*0.1*dot(q, q)));
-		
-	}
+	
+	float d = min(0.0025, time * 0.0001);
+
+	float timeMax = 60.0;
+
+	float thickness = 0.9975 - channels[1] / 128.0;
+
+	// if(channels[1] < 0.5) {
+	// 	// color = smoothstep(thickness-delta, thickness+delta, sin(-PI/2.0+time*timeScale*20.1*dot(q, q)));
+	// } else {
+	// color = smoothstep(thickness-delta, thickness+delta, sin(-PI/2.0+pow(time*timeScale, 2.0)*0.1*dot(q, q)));	
+	// }
+
+	float phase = PI / 4.0;
+	float timeScale = 1.0 - 0.5 * channels[0] / 128.0;
+	float angle = phase + pow(1.8, time * timeScale) * 0.1 * dot(q, q);
+	
+	color = smoothstep(thickness-d, thickness+d, sin(angle));	
 
 	// color = step(0.0, sin(pow(1.20,140.0*channels[0]/128.0)*dot(q, q)));
 
 	// gl_FragColor = vec4(modulo(int(color), 3), modulo(int(color), 2), color, 1.0);
 	gl_FragColor = vec4(color, color, color, 1.0);
+	// gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }`;

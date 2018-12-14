@@ -7,10 +7,11 @@ let scripts = [
     'shader-grid',
     'shader-checker',
     'shader-fractal',
-    'shader-geom'
+    'shader-geom',
+    'shader-city'
 ]
 
-let scriptsOrder = [0, 0, 8, 0, 7, 0, 0]
+let scriptsOrder = [9, 0, 8, 0, 7, 0, 0]
 let currentScriptOrderIndex = 0
 let currentTitleIndex = 0
 
@@ -180,6 +181,9 @@ let onKeyUp = (event)=> {
 
 let main = ()=> {
 
+    if ( WEBGL.isWebGL2Available() === false ) {
+        document.body.appendChild( WEBGL.getWebGL2ErrorMessage() );
+    }
 
     module = loadModule(scripts[scriptsOrder[currentScriptOrderIndex]])
 

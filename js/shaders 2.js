@@ -73,7 +73,6 @@ async function createMaterial(fragmentShader) {
 }
 
 async function createBufferMaterial(fragmentShader) {
-    vertexShader = await import('./shaders/vertex.js')
     
     uniforms = createUniforms()
 
@@ -82,7 +81,6 @@ async function createBufferMaterial(fragmentShader) {
     bufferMaterial = new THREE.ShaderMaterial( {
         uniforms: uniforms,
         // extensions: { derivatives: true },
-        vertexShader: vertexShader.shader.trim(),
         fragmentShader: fragmentShader.trim(), 
         side: THREE.DoubleSide
     } )
@@ -96,8 +94,8 @@ async function createBufferScene(fragmentShader) {
     bufferScene = new THREE.Scene()
     //Create buffer texture
 
-    bufferTextureA = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false, stencilBuffer: false } )
-    bufferTextureB = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false, stencilBuffer: false } )
+    bufferTextureA = new THREE.WebGLRenderTarget( window.innerWidth/2, window.innerHeight/2, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false, stencilBuffer: false } )
+    bufferTextureB = new THREE.WebGLRenderTarget( window.innerWidth/2, window.innerHeight/2, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false, stencilBuffer: false } )
 
     bufferTextureA.texture.wrapS = THREE.ClampToEdgeWrapping;
     bufferTextureA.texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -205,10 +203,7 @@ function updateTime() {
     var elapsedMilliseconds = Date.now() - startTime;
     var elapsedSeconds = elapsedMilliseconds / 1000.;
     currentTime = elapsedSeconds;
-
-    if(uniforms) {
-        uniforms.time.value = elapsedSeconds;
-    }
+    uniforms.time.value = elapsedSeconds;
 }
 
 export function render() {
@@ -276,12 +271,9 @@ export function resize() {
     }
     
     if(uniforms != null) {
-        let sizeX = bounds.max.x - bounds.min.x
-        let sizeY = bounds.max.y - bounds.min.y
-        console.log(sizeX, sizeY)
-        uniforms.resolution.value.x = sizeX;
-        uniforms.resolution.value.y = sizeY;
-        uniforms.iFrame.value = 0;
+        let size = bounds.getSize()
+        uniforms.resolution.value.x = size.x;
+        uniforms.resolution.value.y = size.y;
     }
 
 };
@@ -303,11 +295,9 @@ export async function controlchange(e) {
 
 export function mouseMove(event) {
     let x = event.clientX / window.innerWidth
-    
-    if(uniforms) {
-        uniforms.iMouse.value.x = event.clientX;
-        uniforms.iMouse.value.y = window.innerHeight - event.clientY;
-    }
+
+    uniforms.iMouse.value.x = event.clientX;
+    uniforms.iMouse.value.y = event.clientY;
 
     startTime = Date.now() - maxTime * 1000 * x
     updateTime()

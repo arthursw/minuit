@@ -83,7 +83,7 @@ function init() {
     // camera.position.z = 2500;
 
     cameraPerspective = new THREE.PerspectiveCamera( 50, screenAspectRatio, 150, 1000 );
-    
+
     // cameraPerspectiveHelper = new THREE.CameraHelper( cameraPerspective );
     // group.add( cameraPerspectiveHelper );
 
@@ -94,7 +94,7 @@ function init() {
 
     cameraOrtho = new THREE.OrthographicCamera( screenWidth / - 2, screenWidth / 2, screenHeight / 2, screenHeight / - 2, 1, 1000 );
     // cameraOrtho = new THREE.OrthographicCamera( -0.5 * frustumSize * screenAspectRatio, 0.5 * frustumSize * screenAspectRatio, frustumSize / 2, frustumSize / - 2, 150, 1000 );
-    window.cameraOrtho = cameraOrtho
+
     bounds.min.x = cameraOrtho.left
     bounds.min.y = cameraOrtho.bottom
     bounds.max.x = cameraOrtho.right
@@ -171,18 +171,17 @@ function init() {
     // buildEnvironment()
 
     //
-    
-    renderer = new THREE.WebGLRenderer( { antialias: true, preserveDrawingBuffer: true } );
 
+    renderer = new THREE.WebGLRenderer( { antialias: true, preserveDrawingBuffer: true } );
     // renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize( screenWidth, screenHeight );
     container.appendChild( renderer.domElement );
 
-    // renderer.autoClear = false;
+    renderer.autoClear = false;
     // renderer.autoClearColor = false;
     
     // renderer.setClearColor ( new THREE.Color(1, 1, 1), 1);
-    renderer.clear();
+    // renderer.clear();
     //
 
     // stats = new Stats();
@@ -349,7 +348,7 @@ function render() {
     // cameraRig.rotation.x += 0.1;
 
     if(!remanence) {
-        // renderer.clear();
+        renderer.clear();
     }
 
     // activeHelper.visible = false;

@@ -172,7 +172,11 @@ function init() {
 
     //
     
-    renderer = new THREE.WebGLRenderer( { antialias: true, preserveDrawingBuffer: true } );
+    let canvas = document.createElement( 'canvas' );
+    let context = canvas.getContext( 'webgl2' );
+    renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context, antialias: true } );
+
+    // renderer = new THREE.WebGLRenderer( { antialias: true, preserveDrawingBuffer: true } );
 
     // renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize( screenWidth, screenHeight );

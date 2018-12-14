@@ -71,11 +71,17 @@
 			.hidden {
 				display: none;
 			}
+			#gui.hidden {
+				display: none;
+			}
+			#titles.hidden {
+				display: none;
+			}
 
 		</style>
 	</head>
 	<body>
-		<div id="gui" class="flex-column">
+		<div id="gui" class="flex-column hidden">
 			<div id="gui-1" class="flex-row"></div>
 			<div id="gui-2" class="flex-row"></div>
 		</div>
@@ -90,7 +96,8 @@
 
 		<canvas id="canvas"></canvas>
 		<!-- <input type="file" onchange="loadFile()" onclick="Player.stop()" /> -->
-	
+		
+
 		<script src="libs/jquery.min.js"></script>
 		<script src="libs/paper-full.js"></script>
 		<script src="libs/webmidi.min.js"></script>
@@ -103,7 +110,9 @@
 		<!-- <script src="libs/Tone.min.js"></script> -->
 		<script src="libs/Tone.js"></script>
 
-		<script src="libs/three.min.js"></script>
+		<script src="libs/three.js"></script>
+		<script src="libs/WebGL.js"></script>
+
 		<script src="libs/OrbitControls.js"></script>
 		<script src="libs/CopyShader.js"></script>
 		<script src="libs/EffectComposer.js"></script>

@@ -226,7 +226,7 @@ void main()
 
 	float timeMax = 60.0;
 
-	float thickness = 0.9975 - channels[1] / 128.0;
+	float thickness = 0.9975 - channels[1];
 
 	// if(channels[1] < 0.5) {
 	// 	// color = smoothstep(thickness-delta, thickness+delta, sin(-PI/2.0+time*timeScale*20.1*dot(q, q)));
@@ -235,7 +235,7 @@ void main()
 	// }
 
 	float phase = PI / 4.0;
-	float timeScale = 1.0 - 0.5 * channels[0] / 128.0;
+	float timeScale = 1.0 - 0.5 * channels[0];
 	float angle = phase + pow(1.8, time * timeScale) * 0.1 * dot(q, q);
 	
 	color = smoothstep(thickness-d, thickness+d, sin(angle));	

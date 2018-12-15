@@ -79,8 +79,8 @@ function lowViolentKick() {
 
 
 export async function initialize() {
-	// lowViolentKick()
-	// return
+	lowViolentKick()
+	return
 	
 	// Hypnotizing pulse
 
@@ -275,7 +275,7 @@ export function resize() {
 
 export function noteOn(event) {
 	console.log('note on')
-
+	lowViolentKick()
 }
 
 export function noteOff(event) {

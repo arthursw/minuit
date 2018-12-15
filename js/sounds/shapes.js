@@ -1,3 +1,5 @@
+import { period } from '../shapes.js'
+
 let oscillator1 = null
 let oscillator2 = null
 let oscillator3 = null
@@ -551,115 +553,41 @@ function reconnectChain() {
 	connectChain()
 }
 
-function createHelm() {
-
-	oscillator1 = new Tone.OmniOscillator('C2', 'sine')
-	oscillator2 = new Tone.OmniOscillator('C2', 'sine')
-	oscillator3 = new Tone.OmniOscillator('C1', 'pwm')
-
-	oscillators.push(oscillator1)
-	oscillators.push(oscillator2)
-	oscillators.push(oscillator3)
-
-	oscillator1.detune.value = 12*100
-	oscillator2.detune.value = 5
-	oscillator3.detune.value = 3
-
-	amplitudeEnvelope = new Tone.AmplitudeEnvelope({
-		"attack" : 2,
-		"decay" : 1,
-		"sustain" : 1,
-		"release" : 3.6,
-	})
-	
-	feedbackDelay1 = new Tone.FeedbackDelay()
-
-	filter = new Tone.Filter(350, "lowpass");
-
-	filter.Q.value = 25
-	filter.gain.value = 1
-	filter.detune.value = 1000
-
-	filterEnvelope = new Tone.FrequencyEnvelope({
-	 	"attack" : 1.0,
-	 	"baseFrequency" : 200,
-	 	"octaves" : 5
-	 });
-
-	distortion = new Tone.Distortion(0.01)
-	distortion.oversample = 'none'
-
-	feedbackDelay2 = new Tone.FeedbackDelay()
-
-	reverb = new Tone.Reverb()
-
-	// GUI
-
-	let gui1 = document.getElementById('gui-1')
-	let gui2 = document.getElementById('gui-2')
-
-	createOscillatorGUI(gui1, oscillator1, 'Osc. 1')
-	createOscillatorGUI(gui1, oscillator2, 'Osc. 2')
-	createOscillatorGUI(gui1, oscillator3, 'Osc. 3')
-
-	createEnvelopeGUI(gui1, amplitudeEnvelope, 'Amp. Envelope')
-
-	createFeedbackGUI(gui1, feedbackDelay1, 'Feedback 1')
-
-	createEnvelopeGUI(gui2, filterEnvelope, 'Filter Env.', true, filter.frequency)
-	createFilterGUI(gui2, filter, 'Filter')
-
-	createDistortionGUI(gui2, distortion, 'Distortion')
-
-	createFeedbackGUI(gui2, feedbackDelay2, 'Feedback 2')
-
-	createReverbGUI(gui2, reverb, 'Reverb')
-
-	// connections
-
-	oscillator1.connect(amplitudeEnvelope)
-	oscillator2.connect(amplitudeEnvelope)
-	oscillator3.connect(amplitudeEnvelope)
-
-	filterEnvelope.connect(filter.frequency)
-
-	chain.push({node: amplitudeEnvelope, on: true})
-	chain.push({node: feedbackDelay1, on: false})
-	chain.push({node: filter, on: false})
-	chain.push({node: distortion, on: false})
-	chain.push({node: feedbackDelay2, on: false})
-	chain.push({node: reverb, on: true, generate: true})
-
-	connectChain()
-
-	reverb.generate()
-	
-	nodes.push(oscillator1)
-	nodes.push(oscillator2)
-	nodes.push(oscillator3)
-	nodes.push(amplitudeEnvelope)
-	nodes.push(feedbackDelay1)
-	nodes.push(filterEnvelope)
-	nodes.push(filter)
-	nodes.push(distortion)
-	nodes.push(feedbackDelay2)
-	nodes.push(reverb)
-}
-
 let filterInitialQ = 2
-let oscillatorInitialFrequency = Tone.Frequency(200)
+let oscillatorInitialFrequency = Tone.Frequency(100)
 let oscillatorInitialSpread = 5
 let oscillatorSpreadMin = 50
 
+let lfo1 = null
+let lfo2 = null
+
 export async function initialize() {
 	
-	oscillator1 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'fatsawtooth')
-	oscillator2 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'fatsawtooth')
+	oscillator1 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'sine')
+	oscillator2 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'sine')
 	
-	oscillator1.count = 30
-	oscillator2.count = 30
-	oscillator1.spread = oscillatorInitialSpread
-	oscillator2.spread = oscillatorInitialSpread
+	// lfo1 = new Tone.LFO(1/10.2, 50, 60)
+	// lfo2 = new Tone.LFO(1/10.3, 50, 60)
+
+	lfo1 = new Tone.LFO(1/10.2, 0.9, 2.0)
+	lfo2 = new Tone.LFO(1/10.3, 0.9, 2.0)
+
+	lfo1.start()
+	lfo2.start()
+
+	let gain1 = new Tone.Gain(1)
+	let gain2 = new Tone.Gain(1)
+
+	// lfo1.connect(gain1.gain)
+	// lfo2.connect(gain2.gain)
+
+	// lfo1.connect(oscillator1.frequency)
+	// lfo2.connect(oscillator2.frequency)
+
+	// oscillator1.modulationType = 'sine'
+	// oscillator2.modulationType = 'sine'
+	// oscillator1.harmonicity.value = 0.01
+	// oscillator2.harmonicity.value = 0.02
 
 	let noise = new Tone.Noise('white')
 
@@ -690,18 +618,18 @@ export async function initialize() {
 	// lfo.connect(filter3.frequency)
 	// lfo.start()
 	
-	let reverb = new Tone.JCReverb(0.4);
+	let reverb = new Tone.JCReverb(0.64);
 	let delay = new Tone.FeedbackDelay(0.5);
 
 
 	// connections
 
-	oscillator1.connect(amplitudeEnvelope)
-	// oscillator2.connect(amplitudeEnvelope)
+	oscillator1.chain(gain1, amplitudeEnvelope)
+	oscillator2.chain(gain2, amplitudeEnvelope)
 	noise.connect(filter1)
 	noise.connect(filter2)
-	filter1.connect(amplitudeEnvelope)
-	filter2.connect(amplitudeEnvelope)
+	// filter1.connect(amplitudeEnvelope)
+	// filter2.connect(amplitudeEnvelope)
 	// filter3.connect(amplitudeEnvelope)
 	amplitudeEnvelope.chain(filter3, delay, reverb, Tone.Master)
 	
@@ -740,36 +668,39 @@ export function render() {
 	if(pause) {
 		return
 	}
+	// lfo1.frequency.value = 1 / period
+	// lfo2.frequency.value = 1 / (period*0.9)
+	// let time = Tone.context.now()
+	// let percent = (time - startTime) / maxTime
 
-	let time = Tone.context.now()
-	let percent = (time - startTime) / maxTime
-
-	oscillators[0].spread = Math.max(100*12*7 * channels[1] / 128.0, oscillatorSpreadMin)
-	oscillators[1].spread = Math.max(100*12*7 * channels[2] / 128.0, oscillatorSpreadMin)
+	// oscillators[0].spread = Math.max(100*12*7 * channels[1] / 128.0, oscillatorSpreadMin)
+	// oscillators[1].spread = Math.max(100*12*7 * channels[2] / 128.0, oscillatorSpreadMin)
 	
-	if(time % 1.0 > 0.9) {
-		console.log(oscillators[0].spread)
-	}
+	// if(time % 1.0 > 0.9) {
+	// 	console.log(oscillators[0].spread)
+	// }
 
-	filter3.Q.value = Math.pow(10, -2.0 + 5.0 * channels[3] / 128.0)
+	// filter3.Q.value = Math.pow(10, -2.0 + 5.0 * channels[3] / 128.0)
 
-	filter3.frequency.value = Tone.Frequency(20+100*channels[4] / 128.0, 'midi').toFrequency()
+	// filter3.frequency.value = Tone.Frequency(20+100*channels[4] / 128.0, 'midi').toFrequency()
 
-	// oscillators[0].frequency.value = oscillatorInitialFrequency.toFrequency() + channels[1] / 128.0
-	// oscillators[1].frequency.value = oscillatorInitialFrequency.toFrequency() - channels[1] / 128.0
+	// // oscillators[0].frequency.value = oscillatorInitialFrequency.toFrequency() + channels[1] / 128.0
+	// // oscillators[1].frequency.value = oscillatorInitialFrequency.toFrequency() - channels[1] / 128.0
 
-	let deltaQ = -3
-	let q = Math.pow(10, filterInitialQ + deltaQ * channels[0] / 128.0)
+	// let deltaQ = -3
+	// let q = Math.pow(10, filterInitialQ + deltaQ * channels[0] / 128.0)
 
-	filter1.Q.value = q
-	filter2.Q.value = q
+	// filter1.Q.value = q
+	// filter2.Q.value = q
 
 }
 
 export function resize() {
 };
 
+
 export function noteOn(event) {
+
 	amplitudeEnvelope.cancel()
 	
 	let time = Tone.context.now() + amplitudeEnvelope.attack + amplitudeEnvelope.decay

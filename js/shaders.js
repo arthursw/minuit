@@ -1,4 +1,5 @@
 import { scene, renderer, bounds, cameraOrtho, renderThreeJS, initializeThreeJS, container, resizeThreeJS } from './three-scene.js'
+import { flan, setHeight, initializeFlan } from './flan.js'
 
 var uniforms, material, mesh;
 
@@ -13,6 +14,10 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 
 export let channels = []
+export let instrument = 0 //'texture'
+export let previousInstrument = 0
+// let instruments = ['texture', 'voices', 'effects']
+
 let signals = []
 
 for(let i=0 ; i<9 ; i++) {
@@ -34,6 +39,14 @@ let bufferPlane = null
 let bufferObject = null
 let bufferMaterial = null
 let bufferFragmentShader = null
+let canvasTexture = null
+let canvasMaterial = null
+let canvasWasUpdated = false
+let notesOn = []
+
+let group = null
+
+let slidingNotes = []
 
 function createUniforms() {
     if(uniforms) {
@@ -49,6 +62,9 @@ function createUniforms() {
         channels: { type: "f", value: channels },
         iMouse: { type: "v4", value: new THREE.Vector4(0, 0) },
         iFrame: { type: "i", value: 0 },
+        instrument: {type: "i", value: instrument},
+        canvasWasUpdated: {value: false},
+        notesOn: {type: 'i', value: notesOn }
     };
 
     return uniforms
@@ -78,6 +94,7 @@ async function createBufferMaterial(fragmentShader) {
     uniforms = createUniforms()
 
     uniforms.iChannel0 = { value: bufferTextureA.texture }
+    uniforms.iChannel1 = { value: canvasTexture }
 
     bufferMaterial = new THREE.ShaderMaterial( {
         uniforms: uniforms,
@@ -96,8 +113,12 @@ async function createBufferScene(fragmentShader) {
     bufferScene = new THREE.Scene()
     //Create buffer texture
 
+    // canvasMaterial = new THREE.MeshBasicMaterial()
+
     bufferTextureA = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false, stencilBuffer: false } )
     bufferTextureB = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false, stencilBuffer: false } )
+    canvasTexture = new THREE.CanvasTexture( paper.view.element, THREE.UVMapping, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.NearestFilter, THREE.NearestFilter, THREE.RGBAFormat, THREE.FloatType, 1);
+    canvasTexture.needsUpdate = true;
 
     bufferTextureA.texture.wrapS = THREE.ClampToEdgeWrapping;
     bufferTextureA.texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -112,6 +133,12 @@ async function createBufferScene(fragmentShader) {
     // bufferObject = new THREE.Mesh( bufferPlane, bufferMaterial )
     bufferObject.position.z = -1
     bufferScene.add(bufferObject)
+
+    // let canvasObject = new THREE.Mesh( new THREE.PlaneGeometry( window.innerWidth, window.innerHeight ), canvasMaterial)
+    // canvasMaterial.map.needsUpdate = true;
+
+    // canvasObject.position.z = -2
+    // bufferScene.add(canvasObject)
 
 }
 
@@ -130,6 +157,7 @@ function isBufferShader() {
 
 export async function initialize(shaderName) {
     initializeThreeJS();
+
     fragmentShader = await import('./shaders/' + shaderName + '.js')
     
     material = await createMaterial(fragmentShader.shader)
@@ -148,6 +176,8 @@ export async function initialize(shaderName) {
     uniforms.resolution.value.x = width;
     uniforms.resolution.value.y = height;
     initialized = true;
+
+    initializeFlan()
 }
 
 export async function loadFile(shaderName) {
@@ -157,7 +187,7 @@ export async function loadFile(shaderName) {
         bufferFragmentShader = await import('./shaders/' + shaderName + '-buffer' + '.js')
     }
 
-    fileChanged(fragmentShader.shader, bufferFragmentShader.shader)
+    fileChanged(fragmentShader.shader, bufferFragmentShader ? bufferFragmentShader.shader : null)
 }
 
 export async function fileChanged(fragmentShader, bufferFragmentShader) {
@@ -171,6 +201,13 @@ export async function fileChanged(fragmentShader, bufferFragmentShader) {
 }
 
 export function activate(newShaderName) {
+    $(paper.view.element).show()
+    paper.project.clear()
+
+    // let background = new paper.Path.Rectangle(paper.view.bounds)
+    // background.fillColor = 'rgb(10, 234, 34)'
+    // paper.project.activeLayer.addChild(group)
+
     shaderName = newShaderName
 	if(!initialized) {
 		initialize(shaderName)
@@ -199,6 +236,9 @@ export function deactivate() {
 	// $(renderer.domElement).hide()
     // scene.remove( mesh );
 	// console.log(renderer.domElement.style.display)
+
+    paper.project.clear()
+    $(paper.view.element).hide()
 }
 
 function updateTime() {
@@ -224,12 +264,14 @@ export function render() {
         channels[i] = signals[i].value
     }
 
+    uniforms.channels.value = channels;
+
     if(isBufferShader()) {
         renderer.render(bufferScene, cameraOrtho, bufferTextureB, true)
         uniforms.iChannel0 = { value: bufferTextureB.texture }
     }
 
-    uniforms.channels.value = channels;
+    
     uniforms.iFrame.value++;
 
     renderThreeJS();
@@ -240,6 +282,25 @@ export function render() {
         bufferTextureB = bufferTexture;
         bufferObject.material.map = bufferTextureB.texture;
         bufferMaterial.uniforms.iChannel0.value = bufferTextureA.texture;
+    }
+
+
+    if(uniforms.canvasWasUpdated.value) {
+        uniforms.canvasWasUpdated.value = false;
+    }
+    if(canvasWasUpdated) {
+        canvasTexture.needsUpdate = true;
+        uniforms.canvasWasUpdated.value = true;
+        canvasWasUpdated = false;
+    }
+
+    if(instrument == 4) {
+        let period = 10.0
+        let x = time / period
+        x *= paper.view.bounds.width
+        for(let slidingNote of slidingNotes) {
+            slidingNote.path.add(x, slidingNote.path.lastSegment.point.y)
+        }
     }
 }
 
@@ -278,27 +339,126 @@ export function resize() {
     if(uniforms != null) {
         let sizeX = bounds.max.x - bounds.min.x
         let sizeY = bounds.max.y - bounds.min.y
-        console.log(sizeX, sizeY)
         uniforms.resolution.value.x = sizeX;
         uniforms.resolution.value.y = sizeY;
         uniforms.iFrame.value = 0;
+        
     }
 
 };
 
-export function noteOn(event) {
 
+
+let noteMin = Tone.Frequency('A1').toMidi()
+let noteMax = Tone.Frequency('C7').toMidi()
+
+export function noteOn(event) {
+    let data = event.detail
+    let noteNumber = data.note.number
+    let velocity = data.velocity
+
+    if(instrument == 1 || instrument == 2) {       // FLAN
+
+        flan(noteNumber, velocity)
+        canvasWasUpdated = true;
+    }
+    
+    if(instrument == 5) {
+        let slidingNote = new paper.Path()
+        slidingNote.strokeColor = 'black'
+        slidingNote.strokeWidth = 1
+
+        noteNumber = Math.max(noteNumber, noteMin)
+        noteNumber = Math.min(noteNumber, noteMax)
+        let noteY = (noteNumber - noteMin) / (noteMax - noteMin)
+        noteY *= paper.view.bounds.height
+
+        slidingNote.add(0, noteY)
+
+        slidingNotes.push({ path: slidingNote, note: noteNumber} )
+    }
+
+    notesOn.push({ note: noteNumber, velocity: velocity })
+
+    if(uniforms) {
+        uniforms.notesOn.value = notesOn;
+    }
 }
 
 export function noteOff(event) {
+    let data = event.detail
+    let noteNumber = data.note.number
+    let velocity = data.velocity
+    
+    let noteIndex = notesOn.findIndex((elem)=> elem.note == noteNumber)
+    if(noteIndex >= 0) {
+        notesOn.splice(noteIndex, 1)
+    }
 
+    if(instrument == 5) {
+
+        let slidingNoteIndex = slidingNotes.findIndex((elem)=> elem.note == noteNumber)
+        if(slidingNoteIndex >= 0) {
+            // slidingNotes.path.remove()
+            // slidingNotes.splice(slidingNoteIndex, 1)
+        }
+    }
+
+    if(uniforms) {
+        uniforms.notesOn.value = notesOn;
+    }
 }
 
-export async function controlchange(e) {
-    let signalIndex = e.controller.number - 14
-    if(signalIndex >= 0 && signalIndex < signals.length) {
-        signals[signalIndex].linearRampTo(e.data[2], 1.5)
+export async function controlchange(index, type, value) {
+
+    if(type == 'knob' && index >= 0 && index < signals.length) {
+        
+        if(shaderName == 'city') {
+            signals[index].value = value
+        } else {
+            signals[index].linearRampTo(value, 1.5)
+        }
+    
     }
+
+    if(type == 'button-top') {
+
+        if(value > 0.5) { 
+            previousInstrument = instrument
+            instrument = index
+
+            if(shaderName == 'city') {
+                $(paper.view.element).hide()
+                if(instrument == 2 || instrument == 5) {
+                    $(paper.view.element).show()
+
+                }
+
+                if(instrument == 3) {
+                    startTime = Date.now()
+                }
+
+            }
+        } else {
+            if(instrument == 4) { // noise is only an effect
+                instrument = previousInstrument
+            }
+        }
+
+        if(uniforms) {
+            uniforms.instrument.value = instrument
+        }
+
+    }
+
+    if(type == 'slider') {
+        if(shaderName == 'city') {
+            if(index == 2 && instrument == 2) {
+                setHeight(value)
+            }
+        }
+    }
+
 }
 
 export function mouseMove(event) {

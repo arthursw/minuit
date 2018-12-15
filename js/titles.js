@@ -6,7 +6,6 @@ export function activate(shader, index) {
     $('#titles').children().each((i, elem)=> {
         $(elem).hide()
         if(i == index) {
-            console.log('show', elem)
             $(elem).show()
         }
     })

@@ -1,5 +1,6 @@
 let scripts = [
     'titles',
+    'shapes',
     'concentricCircles',
     'lines',
     'painting',
@@ -8,10 +9,11 @@ let scripts = [
     'shader-checker',
     'shader-fractal',
     'shader-geom',
-    'shader-city'
+    'shader-city',
+    'shader-texture',
 ]
 
-let scriptsOrder = [9, 0, 8, 0, 7, 0, 0]
+let scriptsOrder = [0, 0, 10, 9, 0, 8, 0, 7, 0, 0]
 let currentScriptOrderIndex = 0
 let currentTitleIndex = 0
 
@@ -253,7 +255,7 @@ let main = ()=> {
             nanoKontrol.addListener('controlchange', "all", function (e) {
                 console.log("channel: ", e.channel);
                 console.log("controller:", e.controller.number);
-                console.log("data:", e.data.toString());
+                console.log("data:", e.data[2]);
 
                 if(e.channel == 1) {
 
@@ -268,13 +270,39 @@ let main = ()=> {
                         if(scriptsOrder[currentScriptOrderIndex] == 0) {
                             currentTitleIndex = Math.min(currentTitleIndex+1, 4)
                         }
+                        console.log(currentScriptOrderIndex)
+                        console.log(scriptsOrder[currentScriptOrderIndex])
+                        console.log(scripts[scriptsOrder[currentScriptOrderIndex]])
                         loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
                     }
 
                 }
-                
+                let index = 0
+                let type = 'knob'
+                let sliderIndices = [2, 3, 4, 5, 6, 8, 9, 12, 13]
+                let value = e.data[2] / 128
+                if(e.channel == 1) {
+                    if(e.controller.number >= 14 && e.controller.number <= 22) {
+                        type = 'knob'
+                        index = e.controller.number-14
+                    }
+                    let sliderIndex = sliderIndices.indexOf(e.controller.number)
+                    if(sliderIndex >= 0) {
+                        type = 'slider'
+                        index = sliderIndex
+                    }
+                    if(e.controller.number >= 23 && e.controller.number <= 31) {
+                        type = 'button-top'
+                        index = e.controller.number-23
+                    }
+                    if(e.controller.number >= 33 && e.controller.number <= 41) {
+                        type = 'button-bottom'
+                        index = e.controller.number-33
+                    }
+                }
+
                 if(module.controlchange) {
-                    module.controlchange(e)
+                    module.controlchange(index, type, value)
                 }
                 if(soundModule && soundModule.controlchange) {
                     soundModule.controlchange(e)
@@ -345,29 +373,29 @@ let main = ()=> {
     }
 
 
-    var gui = new dat.GUI({hideable: true});
+    // var gui = new dat.GUI({hideable: true});
 
-    gui.add({ name: scripts[scriptsOrder[currentScriptOrderIndex]] }, 'name', scripts).onFinishChange((value)=> {
-        if(value != null && value != '') {
-            clearCanvas();
+    // gui.add({ name: scripts[scriptsOrder[currentScriptOrderIndex]] }, 'name', scripts).onFinishChange((value)=> {
+    //     if(value != null && value != '') {
+    //         clearCanvas();
             
-            loadModule(value)
+    //         loadModule(value)
 
-        }
-    })
+    //     }
+    // })
 
-    let channels = {}
-    for(let i=0 ; i<9 ; i++) {
-        let name = 'channel' + i
-        channels[name] = 0
-        gui.add(channels, name, 0, 128, 1).onFinishChange((value)=> {
-            if(module.controlchange) {
-                module.controlchange({ controller: { number: 14+i }, data: [value, value, value] })
-            }
-        })
-    }
+    // let channels = {}
+    // for(let i=0 ; i<9 ; i++) {
+    //     let name = 'channel' + i
+    //     channels[name] = 0
+    //     gui.add(channels, name, 0, 128, 1).onFinishChange((value)=> {
+    //         if(module.controlchange) {
+    //             module.controlchange({ controller: { number: 14+i }, data: [value, value, value] })
+    //         }
+    //     })
+    // }
 
-    window.gui = gui;
+    // window.gui = gui;
 
     // import('./js/synth.js').then(m => m.createSynth(gui))
 

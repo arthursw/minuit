@@ -35,7 +35,11 @@ let pitchShift = null
 let stereoWidener = null
 let stereoXFeedbackEffect = null
 let vibrato = null
+let phaser = null
+let loop = null
 
+let noteMin = Tone.Frequency('A1').toMidi()
+let noteMax = Tone.Frequency('C7').toMidi()
 
 export function initializeDiffusion() {		
 	// player = new Tone.GrainPlayer({
@@ -55,11 +59,23 @@ export function initializeDiffusion() {
 	stereoWidener = new Tone.StereoWidener()
 	// stereoXFeedbackEffect = new Tone.StereoFeedbackEffect()
 	vibrato = new Tone.Vibrato ( 1 , 0.1 )
+	phaser = new Tone.Phaser({frequency: 2, stages: 10})
+
+	filter = new Tone.Filter(500, "lowpass")
+	filter.Q.value = 10
+	// filter.gain.value = 10
 
 	// stereoXFeedbackEffect.feedback.value = 0.5
 
 	// player.chain(pitchShift, stereoWidener, stereoXFeedbackEffect, Tone.Master)
-	player.chain(pitchShift, vibrato, Tone.Master)
+	player.chain(pitchShift, vibrato, phaser, Tone.Master)
+
+	loop = new Tone.Loop(randomPitch, 1000).start(0)
+	Tone.Transport.start()
+}
+
+function randomPitch() {
+	pitchShift.pitch = Math.random() * 18
 }
 
 export function deactivateDiffusion() {
@@ -79,16 +95,30 @@ export function controlchangeDiffusion(index, type, value) {
 			pitchShift.pitch = (1-value) * 18
 		}
 		if(index == 1) {
-			vibrato.frequency.value = 0.05 + Math.pow(value, 3) * 10
-		}
-		if(index == 2) {
-			vibrato.depth.value = 0.05 + Math.pow(value, 3) * 10
-		}
-		if(index == 3) {
 			stereoWidener.width.value = value
 		}
+		if(index == 2) {
+			phaser.baseFrequency = Tone.Frequency(noteMin + (noteMax - noteMin) * value, 'midi').toFrequency()
+		}
+		if(index == 3) {
+			phaser.octave = value * 8
+		}
 		if(index == 4) {
+			phaser.Q.value = 5 + 100 * Math.pow(value, 3)
+		}
+		if(index == 5) {
+			pitchShift.wet.value = value
+		}
 
+		if(index == 6) {
+			loop.interval = 0.05 + Math.pow(value, 3) * 10
+		}
+
+		if(index == 7) {
+			vibrato.frequency.value = 0.05 + Math.pow(value, 3) * 10
+		}
+		if(index == 8) {
+			vibrato.depth.value = 0.05 + Math.pow(value, 3) * 10
 		}
 	}
 	if(type == 'button-bottom') {

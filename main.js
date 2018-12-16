@@ -124,6 +124,7 @@ let noteOff = (event)=> {
 }
 
 function animate() {
+    TWEEN.update();
     requestAnimationFrame( animate );
     if(module != null) {
         module.render();

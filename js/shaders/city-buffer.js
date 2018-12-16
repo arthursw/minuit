@@ -13,6 +13,7 @@ uniform float channels[9];
 uniform sampler2D iChannel0;
 uniform sampler2D iChannel1;
 uniform int iFrame;
+uniform int instrument;
 uniform bool canvasWasUpdated;
 
 #define PI 3.1415926535897932384626433832795
@@ -56,7 +57,7 @@ vec4 IsNeighbourComing( in ivec2 p , ivec2 d, bool couldBeEmitting, bool couldCh
     float rand = hashi2(p, 13.43, 16.31);
     
     bool isEmitting = c.x > 0.999 && couldBeEmitting;
-    float w = 0.25+rand;//0.75+0.5*sin(rand*time*2.0*PI/0.10);
+    float w = 1.25*rand;//0.75+0.5*sin(rand*time*2.0*PI/0.10);
     if(isComing) {
         bool changeDirection = couldChangeDirection;//hashi2(p, 43.03, 42.34) > 0.99;
         float dx = c.y;
@@ -100,26 +101,36 @@ void main()
     float radius = 200.0;
     float lm = 300.0; // length(iMouse.xy - vec2(px));
     
+    // bool kIsSet = false;
     if(canvasWasUpdated) {
     	vec4 t = texture2D(iChannel1, vUv);
-    	float emittingProbability = c0 > 0.95 ? 1.0 : max(0.01, pow(c0, 5.0));
-    	bool on = t.x > 0.8 && hash2(p, 33.43, 63.31) < emittingProbability;
-    	k.x = on ? 1.0 : 0.0;
+    	
+	    // if(instrument == 5 || t.x > 0.5) { 	// if in sliding notes: ignore if tx == 0
 
-    	if(k.x > 0.1) {
-    		float rand = hash2(p, 23.43, 6.31);
-		    k.y = rand > 0.75 ? 1.0 : rand > 0.5 ? 0.0 : rand > 0.25 ? -1.0 : 0.0;
-		    k.z = rand > 0.75 ? 0.0 : rand > 0.5 ? 1.0 : rand > 0.25 ? 0.0 : -1.0;
-    	}
+		    	float emittingProbability = c0 > 0.95 ? 1.0 : max(0.01, pow(c0, 5.0));
+		    	bool on = t.x > 0.8 && hash2(p, 33.43, 63.31) < emittingProbability;
+		    	k.x = on ? 1.0 : 0.0;
 
-    } else if(lm > radius) {
+		    	if(k.x > 0.1) {
+		    		float rand = hash2(p, 23.43, 6.31);
+				    k.y = rand > 0.75 ? 1.0 : rand > 0.5 ? 0.0 : rand > 0.25 ? -1.0 : 0.0;
+				    k.z = rand > 0.75 ? 0.0 : rand > 0.5 ? 1.0 : rand > 0.25 ? 0.0 : -1.0;
+		    	}
+
+	    // 	kIsSet = instrument != 5 || t.x > 0.5;
+    	// }
+    // }
+
+    } else {
+
+    // if(!kIsSet && lm > radius) {
         
-        if(current.x > minX) {
+        if(current.x > minX && iFrame > 0) {
             k = current;
             k.x *= 1.0 - pow(c2, 5.0);
-            if(c3 < 0.5) {
-            	k.x = max(minX*1.1, k.x);
-            }
+            // if(c3 < 0.5) {
+            // 	k.x = max(minX*1.1, k.x);
+            // }
         } else {
             //float pulse = 0.5 + 0.5 * sin(time*0.10*2.0*3.1416);
             // float emittingProbability = 0.8 + pow(10.0, -2.0 + 2.0 * iMouse.x / resolution.x);
@@ -147,11 +158,12 @@ void main()
 
             // k.w *= 0.999;//hash2(p, 21.43, 23.2);
             //float pulse = 0.95+0.05*sin(time*2.0*PI/3.40);
-            bool pulse = sign(mod(time, 5.40)-0.1) > 0.0;
+            bool pulse = sign(mod(time, 4.75)-0.1) > 0.0;
             k.w *= pulse ? 0.999 : 0.0; //+ pow(10.0, -5.0 + 2.1 * pulse);
             
             float change = hash2(p, 11.43, 14.31);
-            k.w *= 0.994 + 0.006 * change;
+            
+            k.w *= c5 < 0.01 ? 1.0 : (1.0 - pow(c5, 20.0) * change);
             
             if( iFrame==0 ) {
 
@@ -163,6 +175,8 @@ void main()
 					k.x = 1.0;
 					k.y = -sign(pToCenter.x);
 					k.y = -sign(pToCenter.y);
+				} else {
+					k = vec4(0.0);
 				}
 
                 // k.x = step(0.999, hash2(p, 2.43, 43.2));

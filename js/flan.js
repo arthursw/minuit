@@ -435,6 +435,8 @@ let noteMin = Tone.Frequency('A1').toMidi()
 let noteMax = Tone.Frequency('C7').toMidi()
 
 export function flan(noteNumber, velocity) {
+	
+	initializeFlan()
 
 	rectangle.width = 450
 	rectangle.height = 450
@@ -537,7 +539,16 @@ function generateTotem(generateSound=false){
 export var group = null
 
 export function initializeFlan() {
-	group = new paper.Group();
+	if(group == null || group.parent != paper.project.activeLayer) {
+		group = new paper.Group();
+	}
+}
+
+export function deactivateFlan() {
+	if(group) {
+		group.remove()
+	}
+	group = null
 }
 
 // view.onKeyDown = function(event) {

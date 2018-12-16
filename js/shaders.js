@@ -1,6 +1,10 @@
 import { scene, renderer, bounds, cameraOrtho, renderThreeJS, initializeThreeJS, container, resizeThreeJS } from './three-scene.js'
-import { flan, setHeight, initializeFlan } from './flan.js'
+import { flan, setHeight, initializeFlan, deactivateFlan } from './flan.js'
+import { slidingNotes, initializeSN, deactivateSN, updateSN, noteOnSN, noteOffSN, clearSN} from './slidingNotes.js'
+import { initializeTexture, deactivateTexture, controlchangeTexture } from './sounds/texture.js'
+import { initializeDiffusion, deactivateDiffusion, controlchangeDiffusion } from './sounds/diffusion.js'
 
+let elapsedSeconds = 0
 var uniforms, material, mesh;
 
 let startTime = Date.now();
@@ -14,6 +18,7 @@ let width = window.innerWidth;
 let height = window.innerHeight;
 
 export let channels = []
+export let sliders = []
 export let instrument = 0 //'texture'
 export let previousInstrument = 0
 // let instruments = ['texture', 'voices', 'effects']
@@ -24,6 +29,7 @@ for(let i=0 ; i<9 ; i++) {
     let signal = new Tone.Signal(0)
     signals.push(signal)
     channels.push(signal.value)
+    sliders.push(0)
 }
 
 let vertexShader = null
@@ -46,8 +52,6 @@ let notesOn = []
 
 let group = null
 
-let slidingNotes = []
-
 function createUniforms() {
     if(uniforms) {
         return uniforms
@@ -60,6 +64,7 @@ function createUniforms() {
         time: { type: "f", value: currentTime },
         resolution: { type: "v2", value: new THREE.Vector2(width, height) },
         channels: { type: "f", value: channels },
+        sliders: { type: "f", value: sliders },
         iMouse: { type: "v4", value: new THREE.Vector4(0, 0) },
         iFrame: { type: "i", value: 0 },
         instrument: {type: "i", value: instrument},
@@ -177,7 +182,7 @@ export async function initialize(shaderName) {
     uniforms.resolution.value.y = height;
     initialized = true;
 
-    initializeFlan()
+    
 }
 
 export async function loadFile(shaderName) {
@@ -230,28 +235,33 @@ export function activate(newShaderName) {
     if(uniforms) {
         uniforms.iFrame.value = 0;
     }
+
+    initializeInstrument()
 }
 
 export function deactivate() {
 	// $(renderer.domElement).hide()
     // scene.remove( mesh );
 	// console.log(renderer.domElement.style.display)
-
+    deactivateInstrument()
     paper.project.clear()
     $(paper.view.element).hide()
 }
 
 function updateTime() {
     var elapsedMilliseconds = Date.now() - startTime;
-    var elapsedSeconds = elapsedMilliseconds / 1000.;
+    elapsedSeconds = elapsedMilliseconds / 1000.;
     currentTime = elapsedSeconds;
 
     if(uniforms) {
         uniforms.time.value = elapsedSeconds;
     }
+    return elapsedSeconds
 }
 
 export function render() {
+    
+
 	if(renderer == null || uniforms == null) {
 		return
 	}
@@ -265,13 +275,15 @@ export function render() {
     }
 
     uniforms.channels.value = channels;
+    uniforms.sliders.value = sliders;
 
-    if(isBufferShader()) {
+    // if(isBufferShader() && (instrument == 1 || instrument == 5)) {
+
+    if(isBufferShader() && instrument == 1) {
         renderer.render(bufferScene, cameraOrtho, bufferTextureB, true)
         uniforms.iChannel0 = { value: bufferTextureB.texture }
     }
 
-    
     uniforms.iFrame.value++;
 
     renderThreeJS();
@@ -294,14 +306,11 @@ export function render() {
         canvasWasUpdated = false;
     }
 
-    if(instrument == 4) {
-        let period = 10.0
-        let x = time / period
-        x *= paper.view.bounds.width
-        for(let slidingNote of slidingNotes) {
-            slidingNote.path.add(x, slidingNote.path.lastSegment.point.y)
-        }
-    }
+    // if(instrument == 5) {
+    //     updateSN(elapsedSeconds)
+    //     canvasTexture.needsUpdate = true;
+    //     uniforms.canvasWasUpdated.value = true;
+    // }
 }
 
 export function resize() {
@@ -347,11 +356,6 @@ export function resize() {
 
 };
 
-
-
-let noteMin = Tone.Frequency('A1').toMidi()
-let noteMax = Tone.Frequency('C7').toMidi()
-
 export function noteOn(event) {
     let data = event.detail
     let noteNumber = data.note.number
@@ -364,18 +368,7 @@ export function noteOn(event) {
     }
     
     if(instrument == 5) {
-        let slidingNote = new paper.Path()
-        slidingNote.strokeColor = 'black'
-        slidingNote.strokeWidth = 1
-
-        noteNumber = Math.max(noteNumber, noteMin)
-        noteNumber = Math.min(noteNumber, noteMax)
-        let noteY = (noteNumber - noteMin) / (noteMax - noteMin)
-        noteY *= paper.view.bounds.height
-
-        slidingNote.add(0, noteY)
-
-        slidingNotes.push({ path: slidingNote, note: noteNumber} )
+        noteOnSN(event)
     }
 
     notesOn.push({ note: noteNumber, velocity: velocity })
@@ -397,19 +390,100 @@ export function noteOff(event) {
 
     if(instrument == 5) {
 
-        let slidingNoteIndex = slidingNotes.findIndex((elem)=> elem.note == noteNumber)
-        if(slidingNoteIndex >= 0) {
-            // slidingNotes.path.remove()
-            // slidingNotes.splice(slidingNoteIndex, 1)
-        }
+        noteOffSN(event)
     }
 
     if(uniforms) {
         uniforms.notesOn.value = notesOn;
     }
 }
+let noise = null
+let oscillator = new Tone.OmniOscillator(200, 'fatsawtooth')
+oscillator.count = 30
+oscillator.spread = 20
+oscillator.toMaster()
+let oscillatorTween = 0
+
+function initializeInstrument() {
+
+    if(shaderName == 'city') {
+        
+        $(paper.view.element).hide()
+        
+        if(instrument == 0) {
+            initializeTexture()
+        }
+
+        if(instrument == 1) {
+            uniforms.iFrame.value = 0;
+            initializeDiffusion()
+
+            // let obj = {}
+            // obj[4] = 1
+            // var tween = new TWEEN.Tween(sliders).to(obj, 1000).easing(TWEEN.Easing.Quadratic.InOut).start()
+            // tween.onUpdate(()=> {
+            //     console.log(sliders[4])
+            // })
+        }
+
+        if(instrument == 2) {
+            initializeFlan()
+            $(paper.view.element).show()
+        }
+
+        if(instrument == 5) {
+            initializeSN()
+        }
+
+        if(instrument == 3) { // star field light speed
+            startTime = Date.now()
+            oscillator.start()
+            oscillatorTween = new TWEEN.Tween(oscillator).to({spread: 100*12*7}, 10000).easing(TWEEN.Easing.Quadratic.InOut).start()
+        }
+        if(instrument == 4) {
+            noise = new Tone.Noise('pink').toMaster()
+            noise.volume.value = -6;
+            noise.start()
+        }
+        if(instrument == 5) { // slidingNotes
+            initializeSN()
+        }
+
+    }
+}
+
+function deactivateInstrument() {
+
+    if(instrument == 0) {
+        deactivateTexture()
+    }
+    if(instrument == 1) {
+        deactivateDiffusion()
+    }
+    if(instrument == 2) {
+        deactivateFlan()
+    }
+    if(instrument == 3) { // star field light speed
+        console.log('deactivate 3')
+        oscillator.stop()
+        oscillatorTween.stop()
+        oscillator.spread = 20
+    }
+    if(instrument == 4) {
+        noise.stop()
+    }  
+    if(instrument == 5) { // slidingNotes
+        deactivateSN()
+    }
+}
 
 export async function controlchange(index, type, value) {
+
+    if(instrument == 0) {                           // texture
+        controlchangeTexture(index, type, value)
+    } else if(instrument == 1){
+        controlchangeDiffusion(index, type, value)
+    }
 
     if(type == 'knob' && index >= 0 && index < signals.length) {
         
@@ -424,25 +498,19 @@ export async function controlchange(index, type, value) {
     if(type == 'button-top') {
 
         if(value > 0.5) { 
-            previousInstrument = instrument
+            deactivateInstrument()
             instrument = index
+            initializeInstrument()
 
-            if(shaderName == 'city') {
-                $(paper.view.element).hide()
-                if(instrument == 2 || instrument == 5) {
-                    $(paper.view.element).show()
-
-                }
-
-                if(instrument == 3) {
-                    startTime = Date.now()
-                }
-
-            }
-        } else {
-            if(instrument == 4) { // noise is only an effect
-                instrument = previousInstrument
-            }
+        } else { // release instrument
+            
+            // if(instrument == 4) { // noise is only an effect
+            //     instrument = previousInstrument
+            // } else {
+            //     previousInstrument = instrument
+            // }
+            
+            // initializeInstrument()
         }
 
         if(uniforms) {
@@ -451,11 +519,35 @@ export async function controlchange(index, type, value) {
 
     }
 
+    if(type == 'button-bottom') {
+        if(value > 0.5) {
+            if(index == 0 && instrument == 1) {
+                uniforms.iFrame.value = 0
+                startTime = Date.now()
+            }
+            if(index == 1 && instrument == 1) {
+                uniforms.iFrame.value = 0
+                startTime = Date.now()
+            }
+            if(index == 2 && instrument == 1) {
+                startTime = Date.now()
+            }
+            if(index == 5 && instrument == 5) {
+                clearSN()
+            }
+        }
+    }
+
     if(type == 'slider') {
         if(shaderName == 'city') {
-            if(index == 2 && instrument == 2) {
+            if(index == 2 && (instrument == 2 || instrument == 1) ){
                 setHeight(value)
             }
+
+            // sliders[index] = value
+            let obj = {}
+            obj[index] = value
+            var tween = new TWEEN.Tween(sliders).to(obj, 1000).easing(TWEEN.Easing.Quadratic.InOut).start()
         }
     }
 

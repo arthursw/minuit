@@ -10,6 +10,7 @@ uniform float time;
 uniform vec4 iMouse;
 uniform vec2 resolution;
 uniform float channels[9];
+uniform float sliders[9];
 uniform int notesOn[88];
 uniform sampler2D iChannel0;
 uniform int iFrame;
@@ -145,6 +146,17 @@ float wave2(float min, float max, float frequency, float t)
 
 vec4 sineTexture(vec2 fragCoord )
 {
+	float s0 = sliders[0];
+	float s1 = sliders[1];
+	float s2 = sliders[2];
+	float s3 = sliders[3];
+	float s4 = sliders[4];
+	float s5 = sliders[5];
+	float s6 = sliders[6];
+	float s7 = sliders[7];
+	float s8 = sliders[8];
+	
+
 	float colorSin = 0.0;
 	float colorLine = 0.0;
 	const int nSini = 25;
@@ -160,10 +172,10 @@ vec4 sineTexture(vec2 fragCoord )
 	for(int ii=0 ; ii<nSini ; ii++)
 	{
 		float i = float(ii);
-		float amplitude = mouse.x*1.0*noise(i*0.2454)*sin(time+noise(i)*100.0);
-		float offset = mouse.y;
+		float amplitude = s0*2000.0*noise(i*0.2454)*sin(time+noise(i)*100.0);
+		float offset = s2*1000.0;
 		float frequency = 0.1*noise(i*100.2454);
-		float phase = 0.02*i*noise(i*10.2454)*10.0*time*mouse.x/resolution.x;
+		float phase = 0.02*i*noise(i*10.2454)*20.0*time*s1;
 		line += i*0.003*wave(amplitude,offset,frequency,phase,fragCoord.x);
 		colorSin += 0.95/abs(line-fragCoord.y);
 	}
@@ -202,16 +214,16 @@ void main()
 
 	if( instrument == 0 ) {
 		result = sineTexture(p);
-	} else if(instrument == 1) {
+	} else if(instrument == 1 || instrument == 5) {
 
 		vec4 t = texture2D(iChannel0, vUv);
 	    // vec4 t = texelFetch( iChannel0, ivec2(p), 0 );
 	   // float w = 0.1*t.w;// 0.5+0.5*sin(2.90*t.w);
 	    //fragColor = vec4(t.x*0.76, t.x*0.4+w*0.95, t.x+w*0.97, 1.0);
-	    float pw = pow(t.w, 6.0);
-	    vec3 wColor = c4 * vec3(0.3, 0.2, 0.7);
+	    float pw = pow(t.w, 6.0 + c5);
+	    vec3 wColor = c3 * vec3(0.3, 0.2, 0.7);
 	    vec3 tColor = vec3(1.0);
-	    float tx = c5 > 0.5 ? t.x : t.x > minX ? 1.0 : 0.0;
+	    float tx = t.x * c4;
 	    result = vec4(tx*tColor + pw*wColor, 1.0);
 	} else if(instrument == 3) {
 		result = starField(p, time, c0);

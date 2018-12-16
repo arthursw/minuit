@@ -13,7 +13,7 @@ let scripts = [
     'shader-texture',
 ]
 
-let scriptsOrder = [0, 0, 10, 9, 0, 8, 0, 7, 0, 0]
+let scriptsOrder = [0, 0, 0, 10, 9, 0, 8, 0, 0, 0, 0]
 let currentScriptOrderIndex = 0
 let currentTitleIndex = 0
 
@@ -164,12 +164,54 @@ let onMouseUp = (event)=> {
     mouseDown = false
 }
 
+let instrument = null
 let onKeyDown = (event)=> {
     if(module && module.keyDown) {
         module.keyDown(event)
     }
     if(soundModule && soundModule.keyDown) {
         soundModule.keyDown(event)
+    }
+    if(event.key == 'n') {
+        currentScriptOrderIndex = Math.min(currentScriptOrderIndex+1, scriptsOrder.length - 1)
+        if(scriptsOrder[currentScriptOrderIndex] == 0) {
+            currentTitleIndex = Math.min(currentTitleIndex+1, 6)
+        }
+
+        loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
+    } else if(event.key == 'p') {
+        currentScriptOrderIndex = Math.max(currentScriptOrderIndex-1, 0)
+        if(scriptsOrder[currentScriptOrderIndex] == 0) {
+            currentTitleIndex = Math.max(currentTitleIndex-1, 0)
+        }
+        loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
+    }
+    let num = parseInt(event.key)
+    if(num >= 0 && num <= 9){
+        if(module.controlchange) {
+            if(num != instrument) {
+                module.controlchange(num, 'button-top', 1)
+            }
+            instrument = num
+            
+
+            for(let i=0 ; i<9 ; i++) {
+                module.controlchange(i, 'slider', 0.2+0.8*Math.random())
+                module.controlchange(i, 'knob', 0.2+0.8*Math.random())
+            }
+            
+            module.noteOn({detail: {note: { number: Math.random()*88+20}, velocity: 1 }})
+
+            // function triggerSynth(time){
+            //     module.noteOn({detail: {note: { number: Math.random()*88+20}, velocity: 1 }})
+            // }
+
+            // Tone.Transport.schedule(triggerSynth, 0.1)
+
+            // Tone.Transport.schedule(()=> Tone.Transport.stop(), 1)
+
+            // Tone.Transport.start()
+        }
     }
 }
 
@@ -269,7 +311,7 @@ let main = ()=> {
                     } else if(e.controller.number == 48 && e.data[2] == 127) {      // next
                         currentScriptOrderIndex = Math.min(currentScriptOrderIndex+1, scriptsOrder.length - 1)
                         if(scriptsOrder[currentScriptOrderIndex] == 0) {
-                            currentTitleIndex = Math.min(currentTitleIndex+1, 4)
+                            currentTitleIndex = Math.min(currentTitleIndex+1, 6)
                         }
                         console.log(currentScriptOrderIndex)
                         console.log(scriptsOrder[currentScriptOrderIndex])

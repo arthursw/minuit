@@ -4,8 +4,16 @@ export let slidingNotes = []
 
 let nSynths = 4
 let portamento = 1
+
+let background = null
 export function initializeSN() {
 	paper.project.clear()
+
+
+	if(background == null || background.parent != paper.project.activeLayer) {
+		background = new paper.Path.Rectangle(paper.view.bounds);
+		background.fillColor = 'whitesmoke'
+	}
 
 	for(let slidingNote of slidingNotes) {
 		slidingNote.path.remove()
@@ -21,7 +29,7 @@ export function initializeSN() {
 		synth.volume.value = -10
 
 		let slidingNote = new paper.Path()
-		slidingNote.strokeColor = 'white'
+		slidingNote.strokeColor = 'black'
 		slidingNote.strokeWidth = 1
 
 	    let sn = { path: slidingNote, note: 0, on: false, synth: synth, lastUpdate: Date.now() } 
@@ -170,6 +178,10 @@ export function deactivateSN() {
         slidingNote.synth.triggerRelease()
         slidingNote.path.remove()
     }
+	if(background) {
+		background.remove()
+	}
+	background = null
 }
 
 export function clearSN(){

@@ -630,7 +630,7 @@ export async function initialize() {
 export function activate() {
 	initialize()
 	noteOn()
-	
+
 	Tone.Master.volume.value = -10
 }
 
@@ -661,23 +661,23 @@ export function render() {
 	let time = Tone.context.now()
 	let percent = (time - startTime) / maxTime
 
-	oscillators[0].harmonicity.value = Math.pow(10, -3.0 + 5.0 * channels[0] / 128.0)
-	oscillators[1].harmonicity.value = Math.pow(10, -3.0 + 5.0 * channels[1] / 128.0)
+	oscillators[0].harmonicity.value = Math.pow(10, -3.0 + 5.0 * channels[0])
+	oscillators[1].harmonicity.value = Math.pow(10, -3.0 + 5.0 * channels[1])
 
-	oscillators[0].modulationIndex.value = 5.0 * channels[2] / 128.0
-	oscillators[1].modulationIndex.value = 5.0 * channels[3] / 128.0
+	oscillators[0].modulationIndex.value = 5.0 * channels[2]
+	oscillators[1].modulationIndex.value = 5.0 * channels[3]
 
-	filter3.Q.value = Math.pow(10, -3.0 + 5.0 * channels[4] / 128.0)
-	filter3.frequency.value = Tone.Frequency(20+100*channels[6] / 128.0, 'midi').toFrequency()
+	// filter3.Q.value = Math.pow(10, -3.0 + 5.0 * channels[4]
+	// filter3.frequency.value = Tone.Frequency(20+100*channels[6], 'midi').toFrequency()
 
-	// oscillators[0].frequency.value = oscillatorInitialFrequency.toFrequency() + channels[1] / 128.0
-	// oscillators[1].frequency.value = oscillatorInitialFrequency.toFrequency() - channels[1] / 128.0
+	// // oscillators[0].frequency.value = oscillatorInitialFrequency.toFrequency() + channels[1] / 128.0
+	// // oscillators[1].frequency.value = oscillatorInitialFrequency.toFrequency() - channels[1] / 128.0
 
-	let deltaQ = -3
-	let q = Math.pow(10, filterInitialQ + deltaQ * channels[7] / 128.0)
+	// let deltaQ = -3
+	// let q = Math.pow(10, filterInitialQ + deltaQ * channels[7])
 
-	filter1.Q.value = q
-	filter2.Q.value = q
+	// filter1.Q.value = q
+	// filter2.Q.value = q
 
 }
 

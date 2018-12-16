@@ -9,6 +9,7 @@ export function activate(shader, index) {
             $(elem).show()
         }
     })
+
 }
 
 export function deactivate() {

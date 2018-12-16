@@ -164,14 +164,14 @@ window.blurScale = 3;
 let lineWidth = 3
 var motifs = {
 	MirroredTriangle: function(rectangle, group) {
-		let fillColor = rectangle.strokeWidth == 0 ? 'white' : null;
-		var p1 = new paper.Path({ strokeColor: 'white', strokeWidth: rectangle.strokeWidth, fillColor: fillColor });
+		let fillColor = rectangle.strokeWidth == 0 ? 'black' : null;
+		var p1 = new paper.Path({ strokeColor: 'black', strokeWidth: rectangle.strokeWidth, fillColor: fillColor });
 		p1.add(rectangle.topCenter);
 		p1.add(rectangle.rightCenter);
 		p1.add(rectangle.leftCenter);
 		group.addChild(p1);
 
-		var p2 = new paper.Path({ strokeColor: 'white', strokeWidth: rectangle.strokeWidth, fillColor: fillColor});
+		var p2 = new paper.Path({ strokeColor: 'black', strokeWidth: rectangle.strokeWidth, fillColor: fillColor});
 		p2.add(rectangle.bottomCenter);
 		p2.add(rectangle.leftCenter);
 		p2.add(rectangle.rightCenter);
@@ -184,9 +184,9 @@ var motifs = {
 	},
 	SimpleRectangle: function(rectangle, group) {
 		var r =  new paper.Path.Rectangle(rectangle);
-		r.strokeColor = 'white';
+		r.strokeColor = 'black';
 		if(rectangle.strokeWidth == 0) {
-			r.fillColor = 'white';
+			r.fillColor = 'black';
 			r.strokeWidth = 0;
 		} else {
 			r.strokeWidth = rectangle.strokeWidth;
@@ -199,15 +199,15 @@ var motifs = {
 		}
 	},
 	Circle: function(rectangle, group) {
-		let fillColor = rectangle.strokeWidth == 0 ? 'white' : null;
+		let fillColor = rectangle.strokeWidth == 0 ? 'black' : null;
 		var d = rectangle.width < rectangle.height ? rectangle.width : rectangle.height;
 		var c =  new paper.Path.Circle(rectangle.center, d / 2);
 		
-		c.strokeColor = 'white';
+		c.strokeColor = 'black';
 		// c.strokeWidth = lineWidth;
 
 		if(rectangle.strokeWidth == 0) {
-			c.fillColor = 'white';
+			c.fillColor = 'black';
 			c.strokeWidth = 0;
 		} else {
 			c.strokeWidth = rectangle.strokeWidth;
@@ -223,8 +223,8 @@ var motifs = {
 	Line: function(rectangle, group) {
 		var d = rectangle.width < rectangle.height ? rectangle.width : rectangle.height;
 		var lineWidth = rectangle.strokeWidth == 0 ? d/10 : rectangle.strokeWidth; 
-		// let fillColor = rectangle.strokeWidth == 0 ? 'white' : null;
-		var p = new paper.Path({ strokeColor: 'white', strokeWidth: lineWidth });
+		// let fillColor = rectangle.strokeWidth == 0 ? 'black' : null;
+		var p = new paper.Path({ strokeColor: 'black', strokeWidth: lineWidth });
 		p.add(rectangle.bottomLeft.add(new paper.Point(lineWidth, -lineWidth)));
 		p.add(rectangle.topCenter.add(new paper.Point(0, lineWidth)));
 		p.add(rectangle.bottomRight.add(new paper.Point(-lineWidth, -lineWidth)));
@@ -243,7 +243,7 @@ var motifs = {
 	// 		let y = rectangle.height * i / nLines
 	// 		p.add(rectangle.topLeft.add(new Point(0, y)))
 	// 		p.add(rectangle.topRight.add(new Point(0, y)))
-	// 		p.strokeColor = 'white'
+	// 		p.strokeColor = 'black'
 	// 		p.strokeWidth = lineWidth
 	// 		group.addChild(p)
 	// 	}
@@ -259,7 +259,7 @@ var motifs = {
 	// 	var d = rectangle.width < rectangle.height ? rectangle.width : rectangle.height;
 	// 	for(let i=0 ; i<nLines ; i++) {
 	// 		let p = new Path.Circle(rectangle.center, (d / 2) * i / nLines)
-	// 		p.strokeColor = 'white'
+	// 		p.strokeColor = 'black'
 	// 		p.strokeWidth = lineWidth
 	// 		group.addChild(p)
 	// 	}
@@ -276,7 +276,7 @@ var motifs = {
 	// 	let y = 0
 	// 	for(let i=0 ; i<nLines ; i++) {
 	// 		let p = new Path()
-	// 		p.strokeColor = 'white'
+	// 		p.strokeColor = 'black'
 	// 		p.strokeWidth = lineWidth
 	// 		p.add(rectangle.bottomLeft.add(new Point(x, -y)))
 	// 		p.add(rectangle.bottomRight.add(new Point(-x, -y)))
@@ -305,7 +305,7 @@ for(var shapeName in motifs) {
 var rectangle = new Rectangle(500, 50, 600, 200);
 var rectangleStroke = new Path.Rectangle(rectangle);
 rectangleStroke.strokeWidth = 1;
-rectangleStroke.strokeColor = 'white';
+rectangleStroke.strokeColor = 'black';
 
 motifs.Line(rectangle, new Group());
 
@@ -316,7 +316,7 @@ motifs.Line(rectangle, new Group());
 var rectangle = new paper.Rectangle(10, 10, 200, 250);
 
 // var r =  new Path.Rectangle(rectangle;
-// r.strokeColor = 'white';
+// r.strokeColor = 'black';
 
 
 rectangle.nHeight = 3;
@@ -434,8 +434,10 @@ var highFrequency = 220*8;
 let noteMin = Tone.Frequency('A1').toMidi()
 let noteMax = Tone.Frequency('C7').toMidi()
 
+
 export function flan(noteNumber, velocity) {
-	
+
+
 	initializeFlan()
 
 	rectangle.width = 450
@@ -456,10 +458,11 @@ export function setHeight(value) {
 }
 
 function generateTotem(generateSound=false){
+
 	generateHeights();
 	group.removeChildren();
 	currentHeight = rectangle.top;
-	var duration = 4*rectangle.width;
+	var duration = 2*rectangle.width;
 
 
 	var bufferSize = 1 * audioContext.sampleRate * duration / 1000,
@@ -537,10 +540,14 @@ function generateTotem(generateSound=false){
 	}
 }
 export var group = null
-
+let background = null
 export function initializeFlan() {
+	if(background == null || background.parent != paper.project.activeLayer) {
+		background = new paper.Path.Rectangle(paper.view.bounds);
+		background.fillColor = 'whitesmoke'
+	}
 	if(group == null || group.parent != paper.project.activeLayer) {
-		group = new paper.Group();
+		group = new paper.Group()
 	}
 }
 
@@ -549,6 +556,10 @@ export function deactivateFlan() {
 		group.remove()
 	}
 	group = null
+	if(background) {
+		background.remove()
+	}
+	background = null
 }
 
 // view.onKeyDown = function(event) {

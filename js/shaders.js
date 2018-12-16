@@ -26,9 +26,9 @@ export let previousInstrument = 0
 let signals = []
 
 for(let i=0 ; i<9 ; i++) {
-    let signal = new Tone.Signal(0)
-    signals.push(signal)
-    channels.push(signal.value)
+    // let signal = new Tone.Signal(0)
+    // signals.push(signal)
+    channels.push(0) //signal.value)
     sliders.push(0)
 }
 
@@ -243,7 +243,9 @@ export function deactivate() {
 	// $(renderer.domElement).hide()
     // scene.remove( mesh );
 	// console.log(renderer.domElement.style.display)
+    
     deactivateInstrument()
+
     paper.project.clear()
     $(paper.view.element).hide()
 }
@@ -270,9 +272,9 @@ export function render() {
         updateTime()
     }
     
-    for(let i = 0 ; i<channels.length ; i++) {
-        channels[i] = signals[i].value
-    }
+    // for(let i = 0 ; i<channels.length ; i++) {
+    //     channels[i] = signals[i].value
+    // }
 
     uniforms.channels.value = channels;
     uniforms.sliders.value = sliders;
@@ -306,11 +308,9 @@ export function render() {
         canvasWasUpdated = false;
     }
 
-    // if(instrument == 5) {
-    //     updateSN(elapsedSeconds)
-    //     canvasTexture.needsUpdate = true;
-    //     uniforms.canvasWasUpdated.value = true;
-    // }
+    if(instrument == 5) {
+        updateSN(elapsedSeconds)
+    }
 }
 
 export function resize() {
@@ -361,8 +361,7 @@ export function noteOn(event) {
     let noteNumber = data.note.number
     let velocity = data.velocity
 
-    if(instrument == 1 || instrument == 2) {       // FLAN
-
+    if(instrument == 2) {       // FLAN
         flan(noteNumber, velocity)
         canvasWasUpdated = true;
     }
@@ -418,21 +417,14 @@ function initializeInstrument() {
             uniforms.iFrame.value = 0;
             initializeDiffusion()
 
-            // let obj = {}
-            // obj[4] = 1
-            // var tween = new TWEEN.Tween(sliders).to(obj, 1000).easing(TWEEN.Easing.Quadratic.InOut).start()
-            // tween.onUpdate(()=> {
-            //     console.log(sliders[4])
-            // })
+            let obj = {}
+            obj[4] = 1
+            var tween = new TWEEN.Tween(channels).to(obj, 2000).easing(TWEEN.Easing.Quadratic.InOut).start()
         }
 
         if(instrument == 2) {
             initializeFlan()
             $(paper.view.element).show()
-        }
-
-        if(instrument == 5) {
-            initializeSN()
         }
 
         if(instrument == 3) { // star field light speed
@@ -447,52 +439,72 @@ function initializeInstrument() {
         }
         if(instrument == 5) { // slidingNotes
             initializeSN()
+            $(paper.view.element).show()
         }
 
     }
 }
 
 function deactivateInstrument() {
-
-    if(instrument == 0) {
-        deactivateTexture()
-    }
-    if(instrument == 1) {
-        deactivateDiffusion()
-    }
-    if(instrument == 2) {
-        deactivateFlan()
-    }
-    if(instrument == 3) { // star field light speed
-        console.log('deactivate 3')
-        oscillator.stop()
-        oscillatorTween.stop()
-        oscillator.spread = 20
-    }
-    if(instrument == 4) {
-        noise.stop()
-    }  
-    if(instrument == 5) { // slidingNotes
-        deactivateSN()
+    if(shaderName == 'city') {
+        if(instrument == 0) {
+            deactivateTexture()
+        }
+        if(instrument == 1) {
+            deactivateDiffusion()
+        }
+        if(instrument == 2) {
+            deactivateFlan()
+        }
+        if(instrument == 3) { // star field light speed
+            console.log('deactivate 3')
+            oscillator.stop()
+            oscillatorTween.stop()
+            oscillator.spread = 20
+        }
+        if(instrument == 4) {
+            noise.stop()
+        }  
+        if(instrument == 5) { // slidingNotes
+            deactivateSN()
+        }
     }
 }
 
 export async function controlchange(index, type, value) {
-
-    if(instrument == 0) {                           // texture
-        controlchangeTexture(index, type, value)
-    } else if(instrument == 1){
-        controlchangeDiffusion(index, type, value)
+    
+    if(shaderName == 'city') {
+        if(instrument == 0) {                           // texture
+            controlchangeTexture(index, type, value)
+        } else if(instrument == 1){
+            controlchangeDiffusion(index, type, value)
+        }
     }
 
-    if(type == 'knob' && index >= 0 && index < signals.length) {
+    if(type == 'knob' && index >= 0 && index < channels.length) {
         
-        if(shaderName == 'city') {
-            signals[index].value = value
-        } else {
-            signals[index].linearRampTo(value, 1.5)
+        // if(shaderName == 'city') {
+        //     signals[index].value = value
+        // } else {
+        //     signals[index].linearRampTo(value, 1.5)
+        // }
+        if(shaderName == 'fractal' ) {
+            if(index == 2) {
+                value = 0.5
+                channels[index] = value
+            }
+            else if(index == 3) {
+                value = 1
+                channels[index] = value
+            }
+            else if(index == 5) {
+                value = 0
+                channels[index] = value
+            }
         }
-    
+        let obj = {}
+        obj[index] = value
+        var tween = new TWEEN.Tween(channels).to(obj, shaderName == 'fractal' ? 5000 : 100).easing(TWEEN.Easing.Quadratic.InOut).start()
     }
 
     if(type == 'button-top') {
@@ -532,7 +544,7 @@ export async function controlchange(index, type, value) {
             if(index == 2 && instrument == 1) {
                 startTime = Date.now()
             }
-            if(index == 5 && instrument == 5) {
+            if(index == 5 && instrument == 5 && shaderName == 'city') {
                 clearSN()
             }
         }

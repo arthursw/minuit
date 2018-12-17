@@ -555,14 +555,14 @@ function reconnectChain() {
 }
 
 let filterInitialQ = 2
-let oscillatorInitialFrequency = Tone.Frequency(440)
+let oscillatorInitialFrequency = Tone.Frequency(100)
 let oscillatorInitialHarmonicity = 0.01
 let oscillatorInitialModulationIndex = 2
 
 export async function initialize() {
 	
-	oscillator1 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'fmsawtooth')
-	oscillator2 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'fmsawtooth')
+	oscillator1 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'fmsine')
+	oscillator2 = new Tone.OmniOscillator(oscillatorInitialFrequency, 'fmsine')
 	
 	oscillator1.harmonicity.value = oscillatorInitialHarmonicity
 	oscillator2.harmonicity.value = oscillatorInitialHarmonicity
@@ -592,7 +592,7 @@ export async function initialize() {
 	filter2.Q.value = Math.pow(10, filterInitialQ)
 	filter2.detune.value = 0
 
-	filter3 = new Tone.Filter('C3', 'bandpass')
+	filter3 = new Tone.Filter('C4', 'lowpass')
 
 	// let lfo = new Tone.LFO(0.1, Tone.Frequency('C1'), Tone.Frequency('C3'))
 	// lfo.connect(filter3.frequency)
@@ -606,9 +606,9 @@ export async function initialize() {
 // 	"baseFrequency" : 1000
 // });
 	// distortion = new Tone.Distortion(0.8);
-	// gain = new Tone.Gain()
-	// gain.gain.value = 0.1
-	// connections
+	gain = new Tone.Gain()
+	gain.gain.value = -6
+
 
 	oscillator1.connect(amplitudeEnvelope)
 	oscillator2.connect(amplitudeEnvelope)
@@ -618,7 +618,7 @@ export async function initialize() {
 	// filter2.connect(amplitudeEnvelope)
 	// filter3.connect(amplitudeEnvelope)
 	// amplitudeEnvelope.chain(filter3, delay, reverb, gain, Tone.Master)
-	amplitudeEnvelope.chain(delay, reverb, Tone.Master)
+	amplitudeEnvelope.chain(delay, reverb, filter3, gain, Tone.Master)
 	
 	nodes.push(oscillator1)
 	nodes.push(oscillator2)

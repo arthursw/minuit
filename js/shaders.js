@@ -3,12 +3,15 @@ import { flan, setHeight, initializeFlan, deactivateFlan } from './flan.js'
 import { slidingNotes, initializeSN, deactivateSN, updateSN, noteOnSN, noteOffSN, clearSN} from './slidingNotes.js'
 import { initializeTexture, deactivateTexture, controlchangeTexture } from './sounds/texture.js'
 import { initializeDiffusion, deactivateDiffusion, controlchangeDiffusion } from './sounds/diffusion.js'
+import { initializeFractal, deactivateFractal, controlchangeFractal } from './sounds/fractal.js'
 
 let elapsedSeconds = 0
 var uniforms, material, mesh;
 
 let startTime = Date.now();
 let currentTime = startTime;
+let lastFrameTime = startTime;
+let speed = 1.0;
 let maxTime = 60.0;
 let pause = false;
 
@@ -19,8 +22,10 @@ let height = window.innerHeight;
 
 export let channels = []
 export let sliders = []
+export let accumulators = []
 export let instrument = 0 //'texture'
 export let previousInstrument = 0
+
 // let instruments = ['texture', 'voices', 'effects']
 
 let signals = []
@@ -30,6 +35,7 @@ for(let i=0 ; i<9 ; i++) {
     // signals.push(signal)
     channels.push(0) //signal.value)
     sliders.push(0)
+    accumulators.push(0)
 }
 
 let vertexShader = null
@@ -61,7 +67,7 @@ function createUniforms() {
     height = window.innerHeight;
 
     uniforms = {
-        time: { type: "f", value: currentTime },
+        time: { type: "f", value: Date.now() },
         resolution: { type: "v2", value: new THREE.Vector2(width, height) },
         channels: { type: "f", value: channels },
         sliders: { type: "f", value: sliders },
@@ -69,7 +75,9 @@ function createUniforms() {
         iFrame: { type: "i", value: 0 },
         instrument: {type: "i", value: instrument},
         canvasWasUpdated: {value: false},
-        notesOn: {type: 'i', value: notesOn }
+        notesOn: {type: 'i', value: notesOn },
+        accumulators: { type: "i", value: accumulators },
+        realTime: { type: "f", value: Date.now() },
     };
 
     return uniforms
@@ -203,6 +211,7 @@ export async function fileChanged(fragmentShader, bufferFragmentShader) {
     }
 
     resizeThreeJS()
+
 }
 
 export function activate(newShaderName) {
@@ -214,6 +223,11 @@ export function activate(newShaderName) {
     // paper.project.activeLayer.addChild(group)
 
     shaderName = newShaderName
+
+    if(shaderName == 'fractal') {
+        initializeFractal()
+    }
+
 	if(!initialized) {
 		initialize(shaderName)
         if(!bufferInitialized) {
@@ -230,7 +244,7 @@ export function activate(newShaderName) {
         }
 	}
     startTime = Date.now()
-    currentTime = startTime / 1000.0;
+    currentTime = 0
     
     if(uniforms) {
         uniforms.iFrame.value = 0;
@@ -248,22 +262,28 @@ export function deactivate() {
 
     paper.project.clear()
     $(paper.view.element).hide()
+
+
+    if(shaderName == 'fractal') {
+        deactivateFractal()
+    }
 }
 
 function updateTime() {
-    var elapsedMilliseconds = Date.now() - startTime;
-    elapsedSeconds = elapsedMilliseconds / 1000.;
-    currentTime = elapsedSeconds;
+    let now = Date.now()
+    let elapsedSeconds = (now - lastFrameTime) / 1000
+    
+    lastFrameTime = now
+    currentTime += elapsedSeconds * speed
 
     if(uniforms) {
-        uniforms.time.value = elapsedSeconds;
+        uniforms.time.value = currentTime
+        uniforms.realTime.value = (now - startTime) / 1000
     }
-    return elapsedSeconds
+    return currentTime
 }
 
 export function render() {
-    
-
 	if(renderer == null || uniforms == null) {
 		return
 	}
@@ -274,6 +294,12 @@ export function render() {
     
     // for(let i = 0 ; i<channels.length ; i++) {
     //     channels[i] = signals[i].value
+    // }
+
+    // if(shaderName == 'fractal' && lastFractalNumber != fractalNumber) {
+    //     accumulators[1] = Math.floor(Math.random() * accumulators[0])
+    //     uniforms.accumulators.value = accumulators;
+    //     lastFractalNumber = fractalNumber
     // }
 
     uniforms.channels.value = channels;
@@ -311,6 +337,7 @@ export function render() {
     if(instrument == 5) {
         updateSN(elapsedSeconds)
     }
+
 }
 
 export function resize() {
@@ -429,6 +456,7 @@ function initializeInstrument() {
 
         if(instrument == 3) { // star field light speed
             startTime = Date.now()
+            currentTime = 0
             oscillator.start()
             oscillatorTween = new TWEEN.Tween(oscillator).to({spread: 100*12*7}, 10000).easing(TWEEN.Easing.Quadratic.InOut).start()
         }
@@ -479,32 +507,18 @@ export async function controlchange(index, type, value) {
         } else if(instrument == 1){
             controlchangeDiffusion(index, type, value)
         }
+    } else if(shaderName == 'fractal') {
+        controlchangeFractal(index, type, value)
     }
 
     if(type == 'knob' && index >= 0 && index < channels.length) {
-        
-        // if(shaderName == 'city') {
-        //     signals[index].value = value
-        // } else {
-        //     signals[index].linearRampTo(value, 1.5)
-        // }
-        if(shaderName == 'fractal' ) {
-            if(index == 2) {
-                value = 0.5
-                channels[index] = value
-            }
-            else if(index == 3) {
-                value = 1
-                channels[index] = value
-            }
-            else if(index == 5) {
-                value = 0
-                channels[index] = value
-            }
-        }
         let obj = {}
         obj[index] = value
-        var tween = new TWEEN.Tween(channels).to(obj, shaderName == 'fractal' ? 5000 : 100).easing(TWEEN.Easing.Quadratic.InOut).start()
+        var tween = new TWEEN.Tween(channels).to(obj, shaderName == 'fractal' ? 500 : 250).easing(TWEEN.Easing.Quadratic.InOut).start()
+        
+        if(index == 8) {
+            speed = Math.pow(value, 2) * 10
+        }
     }
 
     if(type == 'button-top') {
@@ -514,6 +528,12 @@ export async function controlchange(index, type, value) {
             instrument = index
             initializeInstrument()
 
+            accumulators[index]++
+            console.log('accumulator ' + index + ': ' + accumulators[index])
+            
+            if(shaderName == 'fractal' && index == 8) {
+                accumulators[1] = 1
+            }
         } else { // release instrument
             
             // if(instrument == 4) { // noise is only an effect
@@ -527,6 +547,7 @@ export async function controlchange(index, type, value) {
 
         if(uniforms) {
             uniforms.instrument.value = instrument
+            uniforms.accumulators.value = accumulators
         }
 
     }
@@ -536,17 +557,29 @@ export async function controlchange(index, type, value) {
             if(index == 0 && instrument == 1) {
                 uniforms.iFrame.value = 0
                 startTime = Date.now()
+                currentTime = 0
             }
             if(index == 1 && instrument == 1) {
                 uniforms.iFrame.value = 0
                 startTime = Date.now()
+                currentTime = 0
             }
             if(index == 2 && instrument == 1) {
                 startTime = Date.now()
+                currentTime = 0
             }
             if(index == 5 && instrument == 5 && shaderName == 'city') {
                 clearSN()
             }
+            accumulators[index]--
+            console.log('accumulator ' + index + ': ' + accumulators[index])
+
+            if(shaderName == 'fractal' && index == 8) {
+                accumulators[1] = 0
+            }
+        }
+        if(uniforms) {
+            uniforms.accumulators.value = accumulators
         }
     }
 
@@ -560,6 +593,12 @@ export async function controlchange(index, type, value) {
             let obj = {}
             obj[index] = value
             var tween = new TWEEN.Tween(sliders).to(obj, 1000).easing(TWEEN.Easing.Quadratic.InOut).start()
+        } else if(shaderName == 'fractal') {
+            sliders[index] = value
+
+            let obj = {}
+            obj[index] = value
+            var tween = new TWEEN.Tween(sliders).to(obj, 250).easing(TWEEN.Easing.Quadratic.InOut).start()
         }
     }
 
@@ -574,6 +613,7 @@ export function mouseMove(event) {
     }
 
     startTime = Date.now() - maxTime * 1000 * x
+    currentTime = 0
     updateTime()
 }
 

@@ -18,10 +18,10 @@ let center1 = null
 let center2 = null
 
 let currentNotes = []
-let group = new paper.Group()
+export let group = new paper.Group()
 
 export let period = 0
-
+export let synth = null
 export let channels = []
 let signals = []
 
@@ -37,12 +37,6 @@ let shapes = []
 var polySynth = new Tone.PolySynth(5, Tone.Synth).toMaster();
 
 export function activate() {
-    $(paper.view.element).show()
-    paper.project.clear()
-
-    let background = new paper.Path.Rectangle(paper.view.bounds)
-    background.fillColor = 'rgb(234, 234, 234)'
-    paper.project.activeLayer.addChild(group)
 
     currentPosition = new paper.Point(0, 0)
 
@@ -142,11 +136,13 @@ export function activate() {
     // p = new paper.Path.Rectangle(b2)
     // shapes.push(p)
 
-    // cp = new paper.CompoundPath({
-    //     children: shapes,
-    //     fillColor: 'black',
-    //     fillRule: 'evenodd'
-    // })
+    cp = new paper.CompoundPath({
+        children: shapes,
+        fillColor: 'black',
+        fillRule: 'evenodd'
+    })
+
+    group.addChild(cp)
 
     // speaker
 
@@ -168,61 +164,109 @@ export function activate() {
     // }
 
 
-    // two lovers
+    // // two lovers
 
-    cp = new paper.CompoundPath({
-        children: [
-            new paper.Path.Circle(center1, currentRadius),
-            new paper.Path.Circle(center2, currentRadius),
-            new paper.Path.Circle(paper.view.center, currentRadius/2.1),
-            ],
-        // children: circles,
-        fillColor: 'black',
-        fillRule: 'evenodd'
-    })
+    // cp = new paper.CompoundPath({
+    //     children: [
+    //         new paper.Path.Circle(center1, currentRadius),
+    //         new paper.Path.Circle(center2, currentRadius),
+    //         new paper.Path.Circle(paper.view.center, currentRadius/2.1),
+    //         ],
+    //     // children: circles,
+    //     fillColor: 'black',
+    //     fillRule: 'evenodd'
+    // })
+
 
     startTime = Date.now()
     // setInterval(changeShape, 545)
 
 
     // setInterval(changeShape, 250)
+
+    synth = new Tone.Sampler({
+    'A0' : 'A0.[mp3|ogg]',
+    'C1' : 'C1.[mp3|ogg]',
+    'D#1' : 'Ds1.[mp3|ogg]',
+    'F#1' : 'Fs1.[mp3|ogg]',
+    'A1' : 'A1.[mp3|ogg]',
+    'C2' : 'C2.[mp3|ogg]',
+    'D#2' : 'Ds2.[mp3|ogg]',
+    'F#2' : 'Fs2.[mp3|ogg]',
+    'A2' : 'A2.[mp3|ogg]',
+    'C3' : 'C3.[mp3|ogg]',
+    'D#3' : 'Ds3.[mp3|ogg]',
+    'F#3' : 'Fs3.[mp3|ogg]',
+    'A3' : 'A3.[mp3|ogg]',
+    'C4' : 'C4.[mp3|ogg]',
+    'D#4' : 'Ds4.[mp3|ogg]',
+    'F#4' : 'Fs4.[mp3|ogg]',
+    'A4' : 'A4.[mp3|ogg]',
+    'C5' : 'C5.[mp3|ogg]',
+    'D#5' : 'Ds5.[mp3|ogg]',
+    'F#5' : 'Fs5.[mp3|ogg]',
+    'A5' : 'A5.[mp3|ogg]',
+    'C6' : 'C6.[mp3|ogg]',
+    'D#6' : 'Ds6.[mp3|ogg]',
+    'F#6' : 'Fs6.[mp3|ogg]',
+    'A6' : 'A6.[mp3|ogg]',
+    'C7' : 'C7.[mp3|ogg]',
+    'D#7' : 'Ds7.[mp3|ogg]',
+    'F#7' : 'Fs7.[mp3|ogg]',
+    'A7' : 'A7.[mp3|ogg]',
+    'C8' : 'C8.[mp3|ogg]'}, {
+    'release' : 1,
+    'baseUrl' : './audio/'}).toMaster();
 }
 
 let minNote = Tone.Frequency('C1').toMidi()
 let maxNote = Tone.Frequency('C6').toMidi()
 
-function changeShape() {
+function changeShape(show) {
 
-    // 
+
+    if(show) {
+        for(let shape of shapes) {
+            shape.visible = false
+        }
+
+        // let randomIndices = []
+        // let randomNotes = []
+        
+        // let n = Math.random() * 10
+        // for(let i=0 ; i<n ; i++) {
+        //     let randomIndex = Math.floor(Math.random() * shapes.length)
+        //     randomIndices.push(randomIndex)
+        //     if(randomNotes.length >= 5) {
+        //         continue
+        //     }
+        //     let randomNote = Math.floor(minNote + Math.random() * (maxNote-minNote))
+        //     randomNotes.push(Tone.Frequency(randomNote, 'midi'))
+
+        //     console.log(Tone.Frequency(randomNote, 'midi').toNote())
+        // }
+
+
+        
+        // polySynth.triggerAttackRelease(randomNotes, 0.2)
+
+        for(let randomIndex of randomIndices) {
+            shapes[randomIndex].visible = true
+        }
+    }
+
+}
+
+export function noteOn(noteNumber, velocity, time, duration, show) {
+    changeShape(show)
+    synth.triggerAttackRelease(noteNumber, duration, time, velocity)
+}
+
+export function noteOff(noteNumber, velocity, time, duration, show) {
 
     for(let shape of shapes) {
         shape.visible = false
     }
-
-    let randomIndices = []
-    let randomNotes = []
-    
-    let n = Math.random() * 10
-    for(let i=0 ; i<n ; i++) {
-        let randomIndex = Math.floor(Math.random() * shapes.length)
-        randomIndices.push(randomIndex)
-        if(randomNotes.length >= 5) {
-            continue
-        }
-        let randomNote = Math.floor(minNote + Math.random() * (maxNote-minNote))
-        randomNotes.push(Tone.Frequency(randomNote, 'midi'))
-
-        console.log(Tone.Frequency(randomNote, 'midi').toNote())
-    }
-
-
-    
-    polySynth.triggerAttackRelease(randomNotes, 0.2)
-
-    for(let randomIndex of randomIndices) {
-        shapes[randomIndex].visible = true
-    }
-
 }
 
 export function deactivate() {
@@ -231,73 +275,60 @@ export function deactivate() {
 }
 
 export function render(event) {
-    let time = (Date.now() - startTime) / 1000
+    // let time = (Date.now() - startTime) / 1000
     
-    if(!center1 || !center2) {
-        return
-    }
-
-    for(let i = 0 ; i<channels.length ; i++) {
-        channels[i] = signals[i].value
-    }
-
-    // // Speaker
-
-    // period = 1.0
-    // let frequency = 1/period
-
-    // for(let i = 0 ; i<circles.length ; i++) {
-
-    //     let t = i/(circles.length-1)
-
-    //     let amount = 0.1
-
-    //     let sawInit = (t*0.2 + time*1) % period
-    //     let saw = Math.max(0, sawInit / period - period * amount ) / ((1-amount)*period)
-    //     saw = 1 - saw
-
-    //     let width = 1+15.0*saw
-
-    //     circles[i].strokeWidth = width
+    // if(!center1 || !center2) {
+    //     return
     // }
 
-    // // Two lovers
+    // for(let i = 0 ; i<channels.length ; i++) {
+    //     channels[i] = signals[i].value
+    // }
 
-    period = Math.pow(10, -1 + channels[0] * 3.0)
-    let frequency = 1 / period
+    // // // Speaker
 
-    cp.children[0].position.x = center1.x + currentRadius*0.5 * Math.cos(2*Math.PI*frequency*time)
-    cp.children[0].position.y = center1.y + currentRadius*0.5 * Math.sin(2*Math.PI*frequency*time)
+    // // period = 1.0
+    // // let frequency = 1/period
 
-    period *= 0.9
-    frequency = 1 / period
+    // // for(let i = 0 ; i<circles.length ; i++) {
 
-    cp.children[1].position.x = center2.x + currentRadius*0.5 * Math.cos(Math.PI+2*Math.PI*frequency*time)
-    cp.children[1].position.y = center2.y + currentRadius*0.5 * Math.sin(Math.PI+2*Math.PI*frequency*time)
+    // //     let t = i/(circles.length-1)
+
+    // //     let amount = 0.1
+
+    // //     let sawInit = (t*0.2 + time*1) % period
+    // //     let saw = Math.max(0, sawInit / period - period * amount ) / ((1-amount)*period)
+    // //     saw = 1 - saw
+
+    // //     let width = 1+15.0*saw
+
+    // //     circles[i].strokeWidth = width
+    // // }
+
+    // // // Two lovers
+
+    // period = Math.pow(10, -1 + channels[0] * 3.0)
+    // let frequency = 1 / period
+
+    // cp.children[0].position.x = center1.x + currentRadius*0.5 * Math.cos(2*Math.PI*frequency*time)
+    // cp.children[0].position.y = center1.y + currentRadius*0.5 * Math.sin(2*Math.PI*frequency*time)
+
+    // period *= 0.9
+    // frequency = 1 / period
+
+    // cp.children[1].position.x = center2.x + currentRadius*0.5 * Math.cos(Math.PI+2*Math.PI*frequency*time)
+    // cp.children[1].position.y = center2.y + currentRadius*0.5 * Math.sin(Math.PI+2*Math.PI*frequency*time)
 }
 
 function drawChord() {
 
 }
 
-export function noteOn(event) {
-    let data = event.detail
-    let note = data.note.number % 12
-
-}
-
-export function noteOff(event) {
-    let data = event.detail
-    let note = data.note.number % 12
-    let index = currentNotes.indexOf(note)
-    // currentNotes.splice(index, 1)
-}
-
 export async function controlchange(e) {
-    let signalIndex = e.controller.number - 14
-    if(signalIndex >= 0 && signalIndex < signals.length) {
-        signals[signalIndex].linearRampTo(e.data[2]/128.0, 1.5)
-    }
+    // let signalIndex = e.controller.number - 14
+    // if(signalIndex >= 0 && signalIndex < signals.length) {
+    //     signals[signalIndex].linearRampTo(e.data[2]/128.0, 1.5)
+    // }
 }
 
 export function mouseMove(event) {

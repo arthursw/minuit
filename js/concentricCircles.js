@@ -26,19 +26,23 @@ export function render(event) {
     }
 }
 
-export function noteOn(event) {
-    let data = event.detail
-    let circle = new paper.Path.Circle(paper.view.bounds.leftCenter.add(paper.view.size.width * ((data.note.number - noteMin) / noteNumber), 0), data.velocity * parameters.circleSize)
+export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
+
+    let data = noteNumberOrEvent.detail
+    let noteNumber = data ? data.note.number : noteNumberOrEvent
+    let velocity = data ? data.velocity : velocity
+    
+    let circle = new paper.Path.Circle(paper.view.bounds.leftCenter.add(paper.view.size.width * ((noteNumber - noteMin) / noteNumber), 0), velocity * parameters.circleSize)
     circle.strokeColor = 'black'
-    circle.strokeWidth = data.velocity * parameters.circleStrokeWidth
-    circle.data.noteNumber = data.note.number
+    circle.strokeWidth = velocity * parameters.circleStrokeWidth
+    circle.data.noteNumber = note.number
     circles.push(circle)
 
     setTimeout(()=> circle.remove(), 5000)
 }
 
 export function noteOff(event) {
-    let data = event.detail
+    // let data = event.detail
     // let findNote = (circle)=> {
     //     return circle.data.noteNumber == data.note.number
     // }

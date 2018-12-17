@@ -435,35 +435,43 @@ let noteMin = Tone.Frequency('A1').toMidi()
 let noteMax = Tone.Frequency('C7').toMidi()
 
 
-export function flan(noteNumber, velocity) {
+export function flan(noteNumber, velocity, time, duration, show) {
 
 
 	initializeFlan()
 
 	rectangle.width = 450
 	rectangle.height = 450
-	noteNumber = Math.max(noteNumber, noteMin)
-	noteNumber = Math.min(noteNumber, noteMax)
-	let nWidth = (noteNumber - noteMin) / (noteMax - noteMin)
+	
+	// noteNumber = Math.max(noteNumber, noteMin)
+	// noteNumber = Math.min(noteNumber, noteMax)
+	// let nWidth = (noteNumber - noteMin) / (noteMax - noteMin)
 
-	rectangle.nWidth = nWidth * 100
+	rectangle.nHeight = Math.max(1, Math.random() * 10)
 
-	generateTotem(true)
+	rectangle.nWidth = Math.random() * 100
+
+	generateTotem(true, duration, noteNumber)
 
 	group.position = paper.view.bounds.center
+
+	group.visible = show
 }
 
 export function setHeight(value) {
 	rectangle.nHeight = Math.max(1, value * 10);
 }
 
-function generateTotem(generateSound=false){
+function generateTotem(generateSound=false, duration, noteNumber){
 
 	generateHeights();
 	group.removeChildren();
 	currentHeight = rectangle.top;
-	var duration = 2*rectangle.width;
+	// var duration = 2*rectangle.width;
 
+	
+	let note = Tone.Frequency(noteNumber, 'midi').toNote()
+	let notes = Tonal.Chord.notes(note, "maj7")
 
 	var bufferSize = 1 * audioContext.sampleRate * duration / 1000,
 		soundBuffer = null,
@@ -497,8 +505,8 @@ function generateTotem(generateSound=false){
 		if(generateSound) {
 			
 			let h = (currentHeight - rectangle.top) / rectangle.height;
-			let frequency = lowFrequency + h * (highFrequency - lowFrequency)
-
+			// let frequency = lowFrequency + h * (highFrequency - lowFrequency)
+			let frequency = Tone.Frequency(notes.pop()).toFrequency()
 			// frequency, type, modualtionFrequency, modulationType, volume
 			waouw(output, bufferSize, frequency, soundInfo.type, nLocalWidth, soundInfo.modulationType, soundInfo.modulationAmplitude, 0.5, duration);
 		}
@@ -540,13 +548,14 @@ function generateTotem(generateSound=false){
 	}
 }
 export var group = null
-let background = null
+// let background = null
 export function initializeFlan() {
-	if(background == null || background.parent != paper.project.activeLayer) {
-		background = new paper.Path.Rectangle(paper.view.bounds);
-		background.fillColor = 'whitesmoke'
-	}
-	if(group == null || group.parent != paper.project.activeLayer) {
+	// if(background == null || background.parent != paper.project.activeLayer) {
+	// 	background = new paper.Path.Rectangle(paper.view.bounds);
+	// 	background.fillColor = 'whitesmoke'
+	// }
+
+	if(group == null) {
 		group = new paper.Group()
 	}
 }
@@ -556,10 +565,10 @@ export function deactivateFlan() {
 		group.remove()
 	}
 	group = null
-	if(background) {
-		background.remove()
-	}
-	background = null
+	// if(background) {
+	// 	background.remove()
+	// }
+	// background = null
 }
 
 // view.onKeyDown = function(event) {
@@ -613,3 +622,33 @@ var generated = false;
 // 	generateTotem(false);
 // }
 
+
+
+
+
+export function activate() {
+	initializeFlan()
+}
+
+export function noteOn(noteNumber, velocity, time, duration, show) {
+	flan(noteNumber, velocity, time, duration, show)
+}
+
+export function noteOff(noteNumber, velocity, time, duration, show) {
+}
+
+export function deactivate() {
+	deactivateFlan()
+}
+
+export function render(event) {
+}
+
+export async function controlchange(e) {
+}
+
+export function mouseMove(event) {
+}
+
+export function keyDown(event) {
+}

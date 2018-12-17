@@ -11,9 +11,10 @@ let scripts = [
     'shader-geom',
     'shader-city',
     'shader-texture',
+    'music'
 ]
 
-let scriptsOrder = [0, 0, 0, 10, 9, 0, 8, 0, 0, 0, 0]
+let scriptsOrder = [0, 12, 0, 10, 9, 0, 8, 0, 0, 0, 0]
 let currentScriptOrderIndex = 0
 let currentTitleIndex = 0
 
@@ -63,17 +64,22 @@ let loadSoundModule = (name)=> {
     import('./js/sounds/' + name + '.js')
         .then(m => {
 
-            if(soundModule) {
+            if(soundModule && soundModule.deactivate) {
                 soundModule.deactivate()
             }
             soundModule = m
             console.log('activate ', name)
-            soundModule.activate()
+
+            if(soundModule.activate) {
+                soundModule.activate()
+            }
         })
         .catch(err => {
 
             if(soundModule) {
-                soundModule.deactivate()
+                if(soundModule.deactivate) {
+                    soundModule.deactivate()
+                }
                 soundModule = null
             }
 
@@ -320,9 +326,12 @@ let main = ()=> {
                     }
 
                 }
+
                 let index = 0
                 let type = 'knob'
                 let sliderIndices = [2, 3, 4, 5, 6, 8, 9, 12, 13]
+                let specialIndices = [44, 45, 46, 49]
+                let specialTypes = ['record', 'play', 'stop', 'loop']
                 let value = e.data[2] / 128
                 if(e.channel == 1) {
                     if(e.controller.number >= 14 && e.controller.number <= 22) {
@@ -341,6 +350,12 @@ let main = ()=> {
                     if(e.controller.number >= 33 && e.controller.number <= 41) {
                         type = 'button-bottom'
                         index = e.controller.number-33
+                    }
+
+                    let specialIndex = specialIndices.indexOf(e.controller.number)
+                    if(specialIndex >= 0) {
+                        index = specialTypes[specialIndex]
+                        type = 'special'
                     }
                 }
 

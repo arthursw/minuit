@@ -1,19 +1,23 @@
 
 export let slidingNotes = []
+export let group = null
 
 
 let nSynths = 4
 let portamento = 1
 
-let background = null
+// let background = null
 export function initializeSN() {
-	paper.project.clear()
+	// paper.project.clear()
 
-
-	if(background == null || background.parent != paper.project.activeLayer) {
-		background = new paper.Path.Rectangle(paper.view.bounds);
-		background.fillColor = 'whitesmoke'
+	if(group == null) {
+		group = new paper.Group()
 	}
+	
+	// if(background == null || background.parent != paper.project.activeLayer) {
+	// 	background = new paper.Path.Rectangle(paper.view.bounds);
+	// 	background.fillColor = 'whitesmoke'
+	// }
 
 	for(let slidingNote of slidingNotes) {
 		slidingNote.path.remove()
@@ -31,6 +35,8 @@ export function initializeSN() {
 		let slidingNote = new paper.Path()
 		slidingNote.strokeColor = 'black'
 		slidingNote.strokeWidth = 1
+
+		group.addChild(slidingNote)
 
 	    let sn = { path: slidingNote, note: 0, on: false, synth: synth, lastUpdate: Date.now() } 
 	    slidingNotes.push(sn)
@@ -178,10 +184,11 @@ export function deactivateSN() {
         slidingNote.synth.triggerRelease()
         slidingNote.path.remove()
     }
-	if(background) {
-		background.remove()
-	}
-	background = null
+
+	// if(background) {
+	// 	background.remove()
+	// }
+	// background = null
 }
 
 export function clearSN(){
@@ -189,4 +196,38 @@ export function clearSN(){
 	for(let slidingNote of slidingNotes) {
 		paper.project.activeLayer.addChild(slidingNote.path)
 	}
+}
+
+
+
+export function activate() {
+	initializeSN()
+}
+
+export function noteOn(noteNumber, velocity, time, duration, show) {
+	flan(noteNumber, velocity, time, duration, show)
+	let data = event.detail
+    let noteNumber = data.note.number
+    let velocity = data.velocity
+	noteOnSN({ detail: { note: {number: noteNumber}, velocity: velocity } })
+}
+
+export function noteOff(noteNumber, velocity, time, duration, show) {
+}
+
+export function deactivate() {
+	deactivateSN()
+}
+
+export function render(event) {
+	updateSN()
+}
+
+export async function controlchange(e) {
+}
+
+export function mouseMove(event) {
+}
+
+export function keyDown(event) {
 }

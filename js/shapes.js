@@ -185,38 +185,34 @@ export function activate() {
     // setInterval(changeShape, 250)
 
     synth = new Tone.Sampler({
-    'A0' : 'A0.[mp3|ogg]',
-    'C1' : 'C1.[mp3|ogg]',
-    'D#1' : 'Ds1.[mp3|ogg]',
-    'F#1' : 'Fs1.[mp3|ogg]',
-    'A1' : 'A1.[mp3|ogg]',
-    'C2' : 'C2.[mp3|ogg]',
-    'D#2' : 'Ds2.[mp3|ogg]',
-    'F#2' : 'Fs2.[mp3|ogg]',
-    'A2' : 'A2.[mp3|ogg]',
-    'C3' : 'C3.[mp3|ogg]',
-    'D#3' : 'Ds3.[mp3|ogg]',
-    'F#3' : 'Fs3.[mp3|ogg]',
-    'A3' : 'A3.[mp3|ogg]',
-    'C4' : 'C4.[mp3|ogg]',
-    'D#4' : 'Ds4.[mp3|ogg]',
-    'F#4' : 'Fs4.[mp3|ogg]',
-    'A4' : 'A4.[mp3|ogg]',
-    'C5' : 'C5.[mp3|ogg]',
-    'D#5' : 'Ds5.[mp3|ogg]',
-    'F#5' : 'Fs5.[mp3|ogg]',
-    'A5' : 'A5.[mp3|ogg]',
-    'C6' : 'C6.[mp3|ogg]',
-    'D#6' : 'Ds6.[mp3|ogg]',
-    'F#6' : 'Fs6.[mp3|ogg]',
-    'A6' : 'A6.[mp3|ogg]',
-    'C7' : 'C7.[mp3|ogg]',
-    'D#7' : 'Ds7.[mp3|ogg]',
-    'F#7' : 'Fs7.[mp3|ogg]',
-    'A7' : 'A7.[mp3|ogg]',
-    'C8' : 'C8.[mp3|ogg]'}, {
+        'A#2': 'As2.mp3',
+        'A#3': 'As3.mp3',
+        'A2': 'A2.mp3',
+        'A3': 'A3.mp3',
+        'B2': 'B2.mp3',
+        'B3': 'B3.mp3',
+        'C#1': 'Cs1.mp3',
+        'C#2': 'Cs2.mp3',
+        'C1': 'C1.mp3',
+        'C2': 'C2.mp3',
+        'C3': 'C3.mp3',
+        'D#1': 'Ds1.mp3',
+        'D#2': 'Ds2.mp3',
+        'D1': 'D1.mp3',
+        'D2': 'D2.mp3',
+        'E1': 'E1.mp3',
+        'E2': 'E2.mp3',
+        'F#1': 'Fs1.mp3',
+        'F#2': 'Fs2.mp3',
+        'F1': 'F1.mp3',
+        'F2': 'F2.mp3',
+        'G#1': 'Gs1.mp3',
+        'G#2': 'Gs2.mp3',
+        'G1': 'G1.mp3',
+        'G2': 'G2.mp3'
+    }, {
     'release' : 1,
-    'baseUrl' : './audio/'}).toMaster();
+    'baseUrl' : './drum/'}).toMaster();
 }
 
 let minNote = Tone.Frequency('C1').toMidi()
@@ -230,21 +226,20 @@ function changeShape(show) {
             shape.visible = false
         }
 
-        // let randomIndices = []
-        // let randomNotes = []
+        let randomIndices = []
+        let randomNotes = []
         
-        // let n = Math.random() * 10
-        // for(let i=0 ; i<n ; i++) {
-        //     let randomIndex = Math.floor(Math.random() * shapes.length)
-        //     randomIndices.push(randomIndex)
-        //     if(randomNotes.length >= 5) {
-        //         continue
-        //     }
-        //     let randomNote = Math.floor(minNote + Math.random() * (maxNote-minNote))
-        //     randomNotes.push(Tone.Frequency(randomNote, 'midi'))
+        let n = Math.random() * 10
+        for(let i=0 ; i<n ; i++) {
+            let randomIndex = Math.floor(Math.random() * shapes.length)
+            randomIndices.push(randomIndex)
+            if(randomNotes.length >= 5) {
+                continue
+            }
+            let randomNote = Math.floor(minNote + Math.random() * (maxNote-minNote))
+            randomNotes.push(Tone.Frequency(randomNote, 'midi'))
 
-        //     console.log(Tone.Frequency(randomNote, 'midi').toNote())
-        // }
+        }
 
 
         

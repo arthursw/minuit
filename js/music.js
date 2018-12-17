@@ -2,8 +2,10 @@ import * as shapesModule from './shapes.js'
 import * as flanModule from './flan.js'
 import * as slidingNotes from './slidingNotes.js'
 import * as circlesModule from './concentricCircles.js'
+import * as chordsModule from './chords.js'
+import * as lines from './lines.js'
 
-let modules = [ shapesModule, flanModule, slidingNotes, circlesModule ]
+let modules = [ shapesModule, flanModule, slidingNotes, circlesModule, chordsModule, lines ]
 
 let parameters = {
     circleSize: 50,
@@ -25,6 +27,43 @@ let timeWhenLoopStarted = null
 
 let group = null
 
+function equal(t1, t2) {
+    return Math.abs(t1-t2) < 0.01
+}
+
+function onPartEvent(time, event) {
+
+    let playSound = false
+    let otherNotesToPlay = []
+    let nOtherNoteToPlay = 0
+
+    for(let e of part._events) {
+        if(equal(e.value.time, event.time) && event.instrument == e.value.instrument) {
+            otherNotesToPlay.push(e)
+            if(!e.played) {
+                nOtherNoteToPlay
+            }
+
+        }
+    }
+    
+    if(nOtherNoteToPlay > 1) {
+        playSound = false
+        event.played = true
+    } else if(nOtherNoteToPlay == 1) {
+        for(let note of otherNotesToPlay) {
+            note.played = false
+        }
+        playSound = true
+    } else {
+        playSound = true
+    }
+
+    playNote(event.note, event.velocity, time, event.duration, event.module, event.instrument, playSound, event)
+}
+
+let mDuration = '1m'
+
 export function activate() {
     $(paper.view.element).show()
     paper.project.clear()
@@ -37,19 +76,17 @@ export function activate() {
     background.fillColor = 'rgb(234, 234, 234)'
     group.addChild(background)
 
-    part = new Tone.Part(function(time, event){
-            
-            playNote(event.note, event.velocity, time, event.duration, event.module, event.instrument)
-
-        }, [{ time : 0, note : 'C4', dur : '4n', instrument: 0, velocity: 0, module: null },
-            { time : '4n + 8n', note : 'E4', dur : '8n', instrument: 0, velocity: 0, module: null },
-            { time : '2n', note : 'G4', dur : '16n', instrument: 0, velocity: 0, module: null },
-            { time : '2n + 8t', note : 'B4', dur : '4n', instrument: 0, velocity: 0, module: null }])
+    part = new Tone.Part(onPartEvent, [])
+            // { time : 0, note : 'C4', dur : '4n', instrument: 0, velocity: 0, module: null },
+            // { time : '4n + 8n', note : 'E4', dur : '8n', instrument: 0, velocity: 0, module: null },
+            // { time : '2n', note : 'G4', dur : '16n', instrument: 0, velocity: 0, module: null },
+            // { time : '2n + 8t', note : 'B4', dur : '4n', instrument: 0, velocity: 0, module: null }])
 
     part.start(0)
     part.loopStart = 0
-    part.loopEnd = Tone.Time('8m').toSeconds()
+    part.loopEnd = Tone.Time(mDuration).toSeconds()
     part.loop = true
+    Tone.Transport.start()
     timeWhenLoopStarted = Tone.now()
 
     for(let module of modules) {
@@ -70,17 +107,47 @@ export function deactivate() {
 }
 
 export function render(event) {
+    
+    for(let module of modules) {
+        module.render()
+    }
+
     scaleShapes()
 }
 
-function playNote(noteNumber, velocity, time, duration, module, instrument) {
+function playNote(noteNumber, velocity, time, duration, cmodule, instrument, playSound, event) {
 
     // instruments[instrument].triggerAttackRelease(noteNumber, duration, time, velocity)
 
-    if(module.noteOn) {
-        module.noteOn(noteNumber, velocity, time, duration)
+    if(modules[instrument].noteOn) {
+        let d = duration ? Tone.Time(duration).toSeconds() : Tone.Time('4n').toSeconds()
+        modules[instrument].noteOn(noteNumber, velocity, time, d, true, playSound)
     }
 
+    if(!event) {
+        for(let m of modules) {
+            m.group.visible = false
+        }
+        modules[instrument].group.visible = true
+        return
+    }
+
+    let otherNotesToPlay = []
+
+    for(let e of part._events) {
+        if(equal(e.value.time, event.time)) {
+            otherNotesToPlay.push(e)
+            modules[e.value.instrument].group.visible = false
+        }
+    }
+    let m = modules[instrument]
+    if(otherNotesToPlay.length > 0) {
+        let randomIndex = Math.floor(Math.random() * otherNotesToPlay.length)
+        let im = otherNotesToPlay[randomIndex].value.instrument
+        m = modules[im]
+    }
+
+    m.group.visible = true
 }
 
 export function noteOn(event) {
@@ -89,13 +156,15 @@ export function noteOn(event) {
     let noteNumber = data.note.number
     let velocity = data.velocity
 
-    playNote(noteNumber, velocity)
+    playNote(noteNumber, velocity, Tone.now(), '4n', modules[selectedInstrument], selectedInstrument, true)
 
     if(recording) {
         let now = Tone.now()
-        let quantizedTimeInPart = Tone.Time(now-timeWhenLoopStarted).quantize('4m')
-        let quantizedNoteTime = Tone.Time(quantizedTimeInPart).quantize('4n')
-        part.at(quantizedTime, { time: quantizedNoteTime, note: noteNumber, dur: -now, instrument: selectedInstrument, module: module[selectedInstrument]})
+        let timeInMeasure = (now - timeWhenLoopStarted) % Tone.Time(mDuration).toSeconds()
+        let quantizedNoteTime = Tone.Time(timeInMeasure).quantize('8n')
+        console.log(now, timeWhenLoopStarted, timeInMeasure)
+        // let quantizedNoteTime = Tone.Time(quantizedTimeInPart).quantize('4n')
+        part.add(quantizedNoteTime, { time: quantizedNoteTime, note: noteNumber, dur: -now, instrument: selectedInstrument, module: modules[selectedInstrument]})
     }
 }
 
@@ -114,8 +183,8 @@ export function noteOff(event) {
     }
 
 
-    if(module.noteOff) {
-        module.noteOff(noteNumber, velocity, Tone.now())
+    if(modules[selectedInstrument].noteOff) {
+        modules[selectedInstrument].noteOff(noteNumber, velocity, Tone.now())
     }
 
 }
@@ -132,6 +201,7 @@ export async function controlchange(index, type, value) {
 
         if(value > 0.5) { 
             selectedInstrument = index
+            console.log(selectedInstrument)
         }
 
 
@@ -139,8 +209,11 @@ export async function controlchange(index, type, value) {
 
     if(type == 'button-bottom') {
         if(value > 0.5) {
-            if(index == 0) {
-                recording = !recording
+
+            for(let e of part._events.slice()) {
+                if(index == e.value.instrument) {
+                    part.remove(e.startOffset, e)
+                }
             }
         }
     }

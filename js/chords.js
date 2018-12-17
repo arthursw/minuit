@@ -4,7 +4,7 @@ let parameters = {
     patternSize: 60,
     margin: 40,
     notesPerChord: 6,
-    strokeColor: 'white'
+    strokeColor: 'black'
 }
 
 
@@ -273,22 +273,45 @@ let currentNotes = []
 let chords = new paper.Group()
 let currentChord = new paper.Group()
 
-export function activate() {
-    $(paper.view.element).show()
-    paper.project.clear()
+export let group = null
 
-    let background = new paper.Path.Rectangle(paper.view.bounds)
-    background.fillColor = 'black'
-    paper.project.activeLayer.addChild(chords)
-    paper.project.activeLayer.addChild(currentChord)
+export function activate() {
+    // $(paper.view.element).show()
+    // paper.project.clear()
+
+    if(group == null) {
+        group = new paper.Group()
+    }
+    group.addChild(chords)
+    chords.addChild(currentChord)
 
     currentPosition = new paper.Point(0, 0)
 }
 
 export function deactivate() {
-    paper.project.clear()
-    $(paper.view.element).hide()
+    // paper.project.clear()
+    // $(paper.view.element).hide()
+    if(group) {
+        group.remove()
+    }
+    group = null
 }
+
+// export function activate() {
+//     $(paper.view.element).show()
+//     paper.project.clear()
+
+//     let background = new paper.Path.Rectangle(paper.view.bounds)
+//     background.fillColor = 'black'
+//     paper.project.activeLayer.addChild(chords)
+//     paper.project.activeLayer.addChild(currentChord)
+
+// }
+
+// export function deactivate() {
+//     paper.project.clear()
+//     $(paper.view.element).hide()
+// }
 
 export function render(event) {
 
@@ -333,36 +356,51 @@ function drawChord() {
     currentChord.addChild(s3)
 }
 
-export function noteOn(event) {
-    let data = event.detail
-    let note = data.note.number % 12
+let lastTimePlayedNote = Tone.now()
+let chordDuration = Tone.Time('4n').toSeconds()
+
+export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
+
+    let data = noteNumberOrEvent.detail
+    let noteNumber = data ? data.note.number : noteNumberOrEvent
+    velocity = data ? data.velocity : velocity
+
+    let note = noteNumber % 12
+
+    let now = Tone.now()
+
+    if(now - lastTimePlayedNote > chordDuration) {
+        currentNotes = []
+        lastTimePlayedNote = now
+    }
+
     currentNotes.push(note)
     drawChord()
     
-    currentChord.position = currentPosition.add(parameters.patternSize + parameters.margin)
-    chords.addChild(currentChord.clone())
+    // currentChord.position = currentPosition.add(parameters.patternSize + parameters.margin)
+    // chords.addChild(currentChord.clone())
 
-    let totalPatternSize = 2 * parameters.patternSize + parameters.margin
+    // let totalPatternSize = 2 * parameters.patternSize + parameters.margin
 
-    if(currentNotes.length == parameters.notesPerChord) {
-        currentNotes = []
-        currentPosition.x += totalPatternSize
-        if(currentPosition.x + totalPatternSize > paper.view.bounds.width) {
-            currentPosition.x = 0
-            currentPosition.y += totalPatternSize
-            if(currentPosition.y + totalPatternSize > paper.view.bounds.height) {
-                chords.removeChildren()
-                currentPosition.x = 0
-                currentPosition.y = 0
-            }
-        }
-    }
+    // if(currentNotes.length == parameters.notesPerChord) {
+    //     currentNotes = []
+    //     currentPosition.x += totalPatternSize
+    //     if(currentPosition.x + totalPatternSize > paper.view.bounds.width) {
+    //         currentPosition.x = 0
+    //         currentPosition.y += totalPatternSize
+    //         if(currentPosition.y + totalPatternSize > paper.view.bounds.height) {
+    //             chords.removeChildren()
+    //             currentPosition.x = 0
+    //             currentPosition.y = 0
+    //         }
+    //     }
+    // }
 }
 
 export function noteOff(event) {
-    let data = event.detail
-    let note = data.note.number % 12
-    let index = currentNotes.indexOf(note)
+    // let data = event.detail
+    // let note = data.note.number % 12
+    // let index = currentNotes.indexOf(note)
     // currentNotes.splice(index, 1)
 }
 // document.addEventListener('keydown', function(e) {

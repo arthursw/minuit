@@ -1,4 +1,4 @@
-var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+var audioContext = Tone.context; // new (window.AudioContext || window.webkitAudioContext)();
 
 var gainNode = audioContext.createGain();
 gainNode.connect(audioContext.destination);
@@ -434,9 +434,22 @@ var highFrequency = 220*8;
 let noteMin = Tone.Frequency('A1').toMidi()
 let noteMax = Tone.Frequency('C7').toMidi()
 
+let lastTimePlayedNote = Tone.now()
 
-export function flan(noteNumber, velocity, time, duration, show) {
+let currentNotes = []
 
+let chordDuration = Tone.Time('4n').toSeconds()
+
+export function flan(noteNumber, velocity, time, duration, show, playSound) {
+	
+	let now = Tone.now()
+    
+    if(now - lastTimePlayedNote > chordDuration) {
+        currentNotes = []
+        lastTimePlayedNote = now
+    }
+    
+    currentNotes.push(noteNumber)
 
 	initializeFlan()
 
@@ -447,11 +460,11 @@ export function flan(noteNumber, velocity, time, duration, show) {
 	// noteNumber = Math.min(noteNumber, noteMax)
 	// let nWidth = (noteNumber - noteMin) / (noteMax - noteMin)
 
-	rectangle.nHeight = Math.max(1, Math.random() * 10)
+	rectangle.nHeight = currentNotes.length //Math.max(1, Math.random() * 10)
 
-	rectangle.nWidth = Math.random() * 100
+	rectangle.nWidth = duration * 100
 
-	generateTotem(true, duration, noteNumber)
+	generateTotem(playSound, duration, noteNumber)
 
 	group.position = paper.view.bounds.center
 
@@ -467,11 +480,11 @@ function generateTotem(generateSound=false, duration, noteNumber){
 	generateHeights();
 	group.removeChildren();
 	currentHeight = rectangle.top;
-	// var duration = 2*rectangle.width;
+	var duration = 2*rectangle.width;
 
 	
-	let note = Tone.Frequency(noteNumber, 'midi').toNote()
-	let notes = Tonal.Chord.notes(note, "maj7")
+	// let note = Tone.Frequency(noteNumber, 'midi').toNote()
+	// let notes = Tonal.Chord.notes(note, "maj7")
 
 	var bufferSize = 1 * audioContext.sampleRate * duration / 1000,
 		soundBuffer = null,
@@ -484,7 +497,7 @@ function generateTotem(generateSound=false, duration, noteNumber){
 			output[i] = 0;
 		}
 	}
-
+	let ny = 0
 	for(var y=0 ; y < rectangle.nHeight ; y++) {
 		var shapeHeight = shapeHeights[y];
 		var nLocalWidth = Math.max(1, Math.ceil(Math.random() * rectangle.nWidth));
@@ -506,7 +519,8 @@ function generateTotem(generateSound=false, duration, noteNumber){
 			
 			let h = (currentHeight - rectangle.top) / rectangle.height;
 			// let frequency = lowFrequency + h * (highFrequency - lowFrequency)
-			let frequency = Tone.Frequency(notes.pop()).toFrequency()
+			let frequency = Tone.Frequency( currentNotes[ny++], 'midi' ).toFrequency()
+			
 			// frequency, type, modualtionFrequency, modulationType, volume
 			waouw(output, bufferSize, frequency, soundInfo.type, nLocalWidth, soundInfo.modulationType, soundInfo.modulationAmplitude, 0.5, duration);
 		}
@@ -630,8 +644,8 @@ export function activate() {
 	initializeFlan()
 }
 
-export function noteOn(noteNumber, velocity, time, duration, show) {
-	flan(noteNumber, velocity, time, duration, show)
+export function noteOn(noteNumber, velocity, time, duration, show, playSound) {
+	flan(noteNumber, velocity, time, duration, show, playSound)
 }
 
 export function noteOff(noteNumber, velocity, time, duration, show) {

@@ -13,14 +13,25 @@ let noteNumber = 88
 let circles = []
 let lastCircles = []
 
+
+export let group = null
+
 export function activate() {
-    $(paper.view.element).show()
-    paper.project.clear()
+    // $(paper.view.element).show()
+    // paper.project.clear()
+
+    if(group == null) {
+        group = new paper.Group()
+    }
 }
 
 export function deactivate() {
-    paper.project.clear()
-    $(paper.view.element).hide()
+    // paper.project.clear()
+    // $(paper.view.element).hide()
+    if(group) {
+        group.remove()
+    }
+    group = null
 }
 
 export function render(event) {
@@ -45,16 +56,21 @@ export function render(event) {
     }
 }
 
-export function noteOn(event) {
-    let data = event.detail
+export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
+
+    let data = noteNumberOrEvent.detail
+    let noteNumber = data ? data.note.number : noteNumberOrEvent
+    velocity = data ? data.velocity : velocity
+
     let circle = new paper.Path.Circle(paper.view.bounds.bottomLeft.add(
-        paper.view.size.width * ((data.note.number - noteMin) / noteNumber), 0), parameters.circleSize)
+        paper.view.size.width * ((noteNumber - noteMin) / noteNumber), 0), parameters.circleSize)
     circle.fillColor = 'black'
     // circle.strokeWidth = e.velocity * parameters.circleStrokeWidth
-    circle.data.noteNumber = data.note.number
+    circle.data.noteNumber = noteNumber
     
     circle.data = { speed: 2, path: null, segment: null}
-    
+    group.addChild(circle)
+
     let minDistance = parameters.distMax * parameters.distMax
     let closestCircle = null
 
@@ -83,6 +99,7 @@ export function noteOn(event) {
             closestCircle.data.path.add(circle.position)
             circle.data.path = closestCircle.data.path
             circle.data.segment = closestCircle.data.path.lastSegment
+            group.addChild(closestCircle)
         }
     }
 }

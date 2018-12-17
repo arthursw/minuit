@@ -13,7 +13,7 @@ export function initializeSN() {
 	if(group == null) {
 		group = new paper.Group()
 	}
-	
+
 	// if(background == null || background.parent != paper.project.activeLayer) {
 	// 	background = new paper.Path.Rectangle(paper.view.bounds);
 	// 	background.fillColor = 'whitesmoke'
@@ -205,10 +205,6 @@ export function activate() {
 }
 
 export function noteOn(noteNumber, velocity, time, duration, show) {
-	flan(noteNumber, velocity, time, duration, show)
-	let data = event.detail
-    let noteNumber = data.note.number
-    let velocity = data.velocity
 	noteOnSN({ detail: { note: {number: noteNumber}, velocity: velocity } })
 }
 

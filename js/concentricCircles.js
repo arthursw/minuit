@@ -9,15 +9,24 @@ let noteNumber = 88
 
 let circles = []
 
+export let group = null
 
 export function activate() {
-    $(paper.view.element).show()
-    paper.project.clear()
+    // $(paper.view.element).show()
+    // paper.project.clear()
+
+    if(group == null) {
+        group = new paper.Group()
+    }
 }
 
 export function deactivate() {
-    paper.project.clear()
-    $(paper.view.element).hide()
+    // paper.project.clear()
+    // $(paper.view.element).hide()
+    if(group) {
+        group.remove()
+    }
+    group = null
 }
 
 export function render(event) {
@@ -30,12 +39,15 @@ export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
 
     let data = noteNumberOrEvent.detail
     let noteNumber = data ? data.note.number : noteNumberOrEvent
-    let velocity = data ? data.velocity : velocity
+    velocity = data ? data.velocity : velocity
     
     let circle = new paper.Path.Circle(paper.view.bounds.leftCenter.add(paper.view.size.width * ((noteNumber - noteMin) / noteNumber), 0), velocity * parameters.circleSize)
     circle.strokeColor = 'black'
     circle.strokeWidth = velocity * parameters.circleStrokeWidth
-    circle.data.noteNumber = note.number
+    circle.data.noteNumber = noteNumber
+    
+    group.addChild(circle)
+
     circles.push(circle)
 
     setTimeout(()=> circle.remove(), 5000)

@@ -444,4 +444,6 @@ for (const [i, value] of "CEGFEGAAAFFAA".split("").entries()) {
     }
 */
 
-
+export function removeNotes() {
+    chords.removeChildren()
+}

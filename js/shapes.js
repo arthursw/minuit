@@ -269,6 +269,13 @@ export function deactivate() {
     $(paper.view.element).hide()
 }
 
+export function removeNotes() {
+    
+    for(let shape of shapes) {
+        shape.visible = false
+    }
+}
+
 export function render(event) {
     // let time = (Date.now() - startTime) / 1000
     

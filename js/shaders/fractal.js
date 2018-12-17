@@ -18,6 +18,8 @@ const float minX = 0.001;
 
 #define TWO_PI 2.0 * PI
 
+const float fadeInDuration = 10.0;
+
 int modulo(int i, int m) {
 	return i - m * (i / m);
 }
@@ -113,7 +115,9 @@ void main()
     chsv.x = mod(chsv.x + c4*0.1, 1.0);
 
     color = hsv2rgb(chsv);
+    
+    float fadeIn = realTime > fadeInDuration ? 1.0 : realTime / fadeInDuration;
 
-	gl_FragColor = vec4(color, 1.0);
+	gl_FragColor = vec4(fadeIn * color, 1.0);
 }
 `;

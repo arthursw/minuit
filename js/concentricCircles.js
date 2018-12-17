@@ -69,3 +69,10 @@ export function noteOff(event) {
     // }
 
 }
+
+export function removeNotes() {
+    
+    for(let circle of circles) {
+        circle.remove()
+    }
+}

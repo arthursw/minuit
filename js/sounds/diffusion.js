@@ -40,7 +40,7 @@ let loop = null
 
 let noteMin = Tone.Frequency('A1').toMidi()
 let noteMax = Tone.Frequency('C7').toMidi()
-
+let gain = null
 export function initializeDiffusion() {		
 	// player = new Tone.GrainPlayer({
 	// 		"url" : "./texture.mp3",
@@ -59,12 +59,13 @@ export function initializeDiffusion() {
 	stereoWidener = new Tone.StereoWidener()
 	// stereoXFeedbackEffect = new Tone.StereoFeedbackEffect()
 	vibrato = new Tone.Vibrato ( 1 , 0.1 )
-	phaser = new Tone.Phaser({frequency: 2, stages: 10})
+	phaser = new Tone.Phaser({frequency: 0.2, stages: 10})
 
 	filter = new Tone.Filter(500, "lowpass")
 	filter.Q.value = 10
 	// filter.gain.value = 10
 
+	
 	// stereoXFeedbackEffect.feedback.value = 0.5
 
 	// player.chain(pitchShift, stereoWidener, stereoXFeedbackEffect, Tone.Master)
@@ -73,8 +74,12 @@ export function initializeDiffusion() {
 	loop = new Tone.Loop(randomPitch, 1000).start(0)
 	Tone.Transport.start()
 }
-
+let pitchInitialized = false
 function randomPitch() {
+	if(!pitchInitialized) {
+		pitchInitialized = true
+		return
+	}
 	pitchShift.pitch = Math.random() * 18
 }
 
@@ -84,11 +89,11 @@ export function deactivateDiffusion() {
 }
 
 export function render() {
-
+	console.log(gain.gain.value)
 }
 
 export function controlchangeDiffusion(index, type, value) {
-	
+
 	if(type == 'slider') {
 		if(index == 0) {
 			player.playbackRate = value
@@ -98,27 +103,29 @@ export function controlchangeDiffusion(index, type, value) {
 			stereoWidener.width.value = value
 		}
 		if(index == 2) {
-			phaser.baseFrequency = Tone.Frequency(noteMin + (noteMax - noteMin) * value, 'midi').toFrequency()
-		}
-		if(index == 3) {
 			phaser.octave = value * 8
 		}
-		if(index == 4) {
+		if(index == 3) {
 			phaser.Q.value = 5 + 100 * Math.pow(value, 3)
 		}
-		if(index == 5) {
+		if(index == 4) {
 			pitchShift.wet.value = value
 		}
 
-		if(index == 6) {
+		if(index == 5) {
 			loop.interval = 0.05 + Math.pow(value, 3) * 10
 		}
 
-		if(index == 7) {
+		if(index == 6) {
 			vibrato.frequency.value = 0.05 + Math.pow(value, 3) * 10
 		}
-		if(index == 8) {
+		if(index == 7) {
 			vibrato.depth.value = 0.05 + Math.pow(value, 3) * 10
+		}
+
+
+		if(index == 8) {
+			phaser.baseFrequency = value * 5
 		}
 	}
 	if(type == 'button-bottom') {

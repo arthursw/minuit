@@ -14,7 +14,7 @@ let scripts = [
     'music'
 ]
 
-let scriptsOrder = [0, 12, 0, 10, 9, 0, 8, 0, 0, 0, 0]
+let scriptsOrder = [0, 0, 0, 10, 0, 8, 0, 0, 0, 0, 12, 10, 9, 0]
 let currentScriptOrderIndex = 0
 let currentTitleIndex = 0
 
@@ -179,9 +179,10 @@ let onKeyDown = (event)=> {
         soundModule.keyDown(event)
     }
     if(event.key == 'n') {
+        let nTitles = $('#titles').children().length
         currentScriptOrderIndex = Math.min(currentScriptOrderIndex+1, scriptsOrder.length - 1)
         if(scriptsOrder[currentScriptOrderIndex] == 0) {
-            currentTitleIndex = Math.min(currentTitleIndex+1, 6)
+            currentTitleIndex = Math.min(currentTitleIndex+1, nTitles)
         }
 
         loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
@@ -302,26 +303,26 @@ let main = ()=> {
 
             // Listen to control change message on all channels
             nanoKontrol.addListener('controlchange', "all", function (e) {
-                console.log("channel: ", e.channel);
-                console.log("controller:", e.controller.number);
-                console.log("data:", e.data[2]);
+                // console.log("channel: ", e.channel);
+                // console.log("controller:", e.controller.number);
+                // console.log("data:", e.data[2]);
 
                 if(e.channel == 1) {
 
                     if(e.controller.number == 47 && e.data[2] == 127) {             // previous
-                        currentScriptOrderIndex = Math.max(currentScriptOrderIndex-1, 0)
                         if(scriptsOrder[currentScriptOrderIndex] == 0) {
                             currentTitleIndex = Math.max(currentTitleIndex-1, 0)
                         }
+                        currentScriptOrderIndex = Math.max(currentScriptOrderIndex-1, 0)
+                        console.log('currentTitleIndex', currentTitleIndex, currentScriptOrderIndex, scriptsOrder[currentScriptOrderIndex], scripts[scriptsOrder[currentScriptOrderIndex]])
                         loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
                     } else if(e.controller.number == 48 && e.data[2] == 127) {      // next
                         currentScriptOrderIndex = Math.min(currentScriptOrderIndex+1, scriptsOrder.length - 1)
+                        let nTitles = $('#titles').children().length
                         if(scriptsOrder[currentScriptOrderIndex] == 0) {
-                            currentTitleIndex = Math.min(currentTitleIndex+1, 6)
+                            currentTitleIndex = Math.min(currentTitleIndex+1, nTitles)
                         }
-                        console.log(currentScriptOrderIndex)
-                        console.log(scriptsOrder[currentScriptOrderIndex])
-                        console.log(scripts[scriptsOrder[currentScriptOrderIndex]])
+                        console.log('currentTitleIndex', currentTitleIndex, currentScriptOrderIndex, scriptsOrder[currentScriptOrderIndex], scripts[scriptsOrder[currentScriptOrderIndex]])
                         loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
                     }
 

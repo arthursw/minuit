@@ -100,6 +100,13 @@ export function deactivate() {
     paper.project.clear()
     $(paper.view.element).hide()
     
+    part.stop()
+    for(let m of modules) {
+        if(m.stop) {
+            m.stop()
+        }
+    }
+
     for(let module of modules) {
         module.deactivate()
     }
@@ -161,14 +168,20 @@ export function noteOn(event) {
     let noteNumber = data.note.number
     let velocity = data.velocity
 
-    playNote(noteNumber, velocity, Tone.now(), '4n', modules[selectedInstrument], selectedInstrument, true)
+    let now = Tone.now()
+    let timeInMeasure = (now - timeWhenLoopStarted) % Tone.Time(mDuration).toSeconds()
+    let quantizedNoteTime = Tone.Time(timeInMeasure).quantize('8n')
+
+    // let timeInPart = now - timeWhenLoopStarted
+    // let quantizedNoteTimeinPart = Tone.Time(timeInPart).quantize('8n')
+    // let nowQuantized = quantizedNoteTimeinPart + timeWhenLoopStarted
+
+    // let noteDuration = Tone.Time('4n').toSeconds()
+    // let noteTime = nowQuantized < now ? (nowQuantized + noteDuration) : nowQuantized
+
+    playNote(noteNumber, velocity, now, '4n', modules[selectedInstrument], selectedInstrument, true)
 
     if(recording) {
-        let now = Tone.now()
-        let timeInMeasure = (now - timeWhenLoopStarted) % Tone.Time(mDuration).toSeconds()
-        let quantizedNoteTime = Tone.Time(timeInMeasure).quantize('8n')
-        console.log(now, timeWhenLoopStarted, timeInMeasure)
-        // let quantizedNoteTime = Tone.Time(quantizedTimeInPart).quantize('4n')
         part.add(quantizedNoteTime, { time: quantizedNoteTime, velocity: velocity, note: noteNumber, dur: -now, instrument: selectedInstrument, module: modules[selectedInstrument]})
     }
 }
@@ -224,7 +237,9 @@ export async function controlchange(index, type, value) {
             }
             
             if(index >= 0 && index < modules.length) {
-                modules[index].group.removeChildren()
+                if(modules[index].removeNotes) {
+                    modules[index].removeNotes()
+                }
             }
         }
     }

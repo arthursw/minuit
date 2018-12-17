@@ -217,6 +217,7 @@ export async function fileChanged(fragmentShader, bufferFragmentShader) {
 export function activate(newShaderName) {
     $(paper.view.element).show()
     paper.project.clear()
+    instrument = 1
 
     // let background = new paper.Path.Rectangle(paper.view.bounds)
     // background.fillColor = 'rgb(10, 234, 34)'
@@ -284,6 +285,7 @@ function updateTime() {
 }
 
 export function render() {
+
 	if(renderer == null || uniforms == null) {
 		return
 	}
@@ -441,7 +443,11 @@ function initializeInstrument() {
         }
 
         if(instrument == 1) {
-            uniforms.iFrame.value = 0;
+            
+            if(uniforms) {
+                uniforms.iFrame.value = 0;
+            }
+
             initializeDiffusion()
 
             let obj = {}
@@ -499,6 +505,8 @@ function deactivateInstrument() {
     }
 }
 
+let smooth = true
+
 export async function controlchange(index, type, value) {
     
     if(shaderName == 'city') {
@@ -514,7 +522,7 @@ export async function controlchange(index, type, value) {
     if(type == 'knob' && index >= 0 && index < channels.length) {
         let obj = {}
         obj[index] = value
-        var tween = new TWEEN.Tween(channels).to(obj, shaderName == 'fractal' ? 500 : 250).easing(TWEEN.Easing.Quadratic.InOut).start()
+        var tween = new TWEEN.Tween(channels).to(obj, shaderName == 'fractal' && smooth ? 1000 : 250).easing(TWEEN.Easing.Quadratic.InOut).start()
         
         if(index == 8) {
             speed = Math.pow(value, 2) * 10
@@ -534,6 +542,16 @@ export async function controlchange(index, type, value) {
             if(shaderName == 'fractal' && index == 8) {
                 accumulators[1] = 1
             }
+            
+            if(shaderName == 'fractal') {
+
+                if(index == 1) {
+                    uniforms.iFrame.value = 0
+                    startTime = Date.now()
+                    currentTime = 0
+                }
+            }
+
         } else { // release instrument
             
             // if(instrument == 4) { // noise is only an effect
@@ -554,30 +572,48 @@ export async function controlchange(index, type, value) {
 
     if(type == 'button-bottom') {
         if(value > 0.5) {
-            if(index == 0 && instrument == 1) {
-                uniforms.iFrame.value = 0
-                startTime = Date.now()
-                currentTime = 0
+            
+            smooth = false
+
+            if(shaderName == 'city') {
+
+                if(index == 0 && instrument == 1) {
+                    uniforms.iFrame.value = 0
+                    startTime = Date.now()
+                    currentTime = 0
+                }
+                if(index == 1 && instrument == 1) {
+                    uniforms.iFrame.value = 0
+                    startTime = Date.now()
+                    currentTime = 0
+                }
+                if(index == 2 && instrument == 1) {
+                    startTime = Date.now()
+                    currentTime = 0
+                }
+                if(index == 5 && instrument == 5) {
+                    clearSN()
+                }
+
+            } else if(shaderName == 'fractal') {
+
+                if(index == 1) {
+                    uniforms.iFrame.value = 0
+                    startTime = Date.now()
+                    currentTime = 0
+                }
             }
-            if(index == 1 && instrument == 1) {
-                uniforms.iFrame.value = 0
-                startTime = Date.now()
-                currentTime = 0
-            }
-            if(index == 2 && instrument == 1) {
-                startTime = Date.now()
-                currentTime = 0
-            }
-            if(index == 5 && instrument == 5 && shaderName == 'city') {
-                clearSN()
-            }
+
             accumulators[index]--
             console.log('accumulator ' + index + ': ' + accumulators[index])
 
             if(shaderName == 'fractal' && index == 8) {
                 accumulators[1] = 0
             }
+        } else {
+            smooth = true
         }
+
         if(uniforms) {
             uniforms.accumulators.value = accumulators
         }

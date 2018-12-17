@@ -134,7 +134,7 @@ void main()
         } else {
             //float pulse = 0.5 + 0.5 * sin(time*0.10*2.0*3.1416);
             // float emittingProbability = 0.8 + pow(10.0, -2.0 + 2.0 * iMouse.x / resolution.x);
-            float emittingProbability = pow(c0, 5.0);
+            float emittingProbability = pow(c0, 3.0);
             // float changeDirectionProbability = 0.8 + pow(10.0, -3.0 + 3.0 * iMouse.y / resolution.y);
             float changeDirectionProbability = pow(c1, 5.0);
 			bool couldBeEmitting = hashi2(px, 87.03, 123.34) < emittingProbability;

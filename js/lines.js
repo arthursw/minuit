@@ -109,6 +109,13 @@ export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
 export function noteOff(event) {
 
 }
+
+export function removeNotes() {
+    
+    for(let circle of circles) {
+        circle.remove()
+    }
+}
 // document.addEventListener('keydown', function(e) {
 //     noteOn({note: { number: e.which} })
 // }, false)

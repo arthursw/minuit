@@ -62,11 +62,10 @@ export function noteOnSN(event) {
     } else {
     	let i = 0
     	
-    	console.log("current notes before play:")
+
     	for(let slidingNote of slidingNotes) {
-    		// slidingNote.synth.triggerRelease()
 			slidingNote.on = false
-			console.log(slidingNote.note)
+			slidingNote.path.visible = true
     	}
 
     	for(let noteToPlay of notesToPlay) {
@@ -240,4 +239,11 @@ export function mouseMove(event) {
 }
 
 export function keyDown(event) {
+}
+
+export function removeNotes() {
+    
+    for(let slidingNote of slidingNotes) {
+		slidingNote.path.visible = false
+    }
 }

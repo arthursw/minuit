@@ -579,7 +579,10 @@ export function initializeFlan() {
 		group = new paper.Group()
 	}
 }
-
+export function removeNotes() {
+    
+	group.removeChildren();
+}
 export function deactivateFlan() {
 	if(group) {
 		group.remove()

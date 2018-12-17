@@ -62,7 +62,7 @@ function onPartEvent(time, event) {
     playNote(event.note, event.velocity, time, event.duration, event.module, event.instrument, playSound, event)
 }
 
-let mDuration = '1m'
+let mDuration = '2m'
 
 export function activate() {
     $(paper.view.element).show()
@@ -119,15 +119,20 @@ function playNote(noteNumber, velocity, time, duration, cmodule, instrument, pla
 
     // instruments[instrument].triggerAttackRelease(noteNumber, duration, time, velocity)
 
+    if(modules[instrument].synth.volume.value <= -100) {
+        return
+    }
+
     if(modules[instrument].noteOn) {
         let d = duration ? Tone.Time(duration).toSeconds() : Tone.Time('4n').toSeconds()
         modules[instrument].noteOn(noteNumber, velocity, time, d, true, playSound)
     }
 
-    if(!event) {
-        for(let m of modules) {
-            m.group.visible = false
-        }
+    for(let m of modules) {
+        m.group.visible = false
+    }
+
+    if(!event) {    
         modules[instrument].group.visible = true
         return
     }
@@ -137,9 +142,9 @@ function playNote(noteNumber, velocity, time, duration, cmodule, instrument, pla
     for(let e of part._events) {
         if(equal(e.value.time, event.time)) {
             otherNotesToPlay.push(e)
-            modules[e.value.instrument].group.visible = false
         }
     }
+
     let m = modules[instrument]
     if(otherNotesToPlay.length > 0) {
         let randomIndex = Math.floor(Math.random() * otherNotesToPlay.length)
@@ -164,7 +169,7 @@ export function noteOn(event) {
         let quantizedNoteTime = Tone.Time(timeInMeasure).quantize('8n')
         console.log(now, timeWhenLoopStarted, timeInMeasure)
         // let quantizedNoteTime = Tone.Time(quantizedTimeInPart).quantize('4n')
-        part.add(quantizedNoteTime, { time: quantizedNoteTime, note: noteNumber, dur: -now, instrument: selectedInstrument, module: modules[selectedInstrument]})
+        part.add(quantizedNoteTime, { time: quantizedNoteTime, velocity: velocity, note: noteNumber, dur: -now, instrument: selectedInstrument, module: modules[selectedInstrument]})
     }
 }
 
@@ -189,6 +194,7 @@ export function noteOff(event) {
 
 }
 
+let stopTime = null
 
 export async function controlchange(index, type, value) {
 
@@ -200,8 +206,9 @@ export async function controlchange(index, type, value) {
     if(type == 'button-top') {
 
         if(value > 0.5) { 
-            selectedInstrument = index
-            console.log(selectedInstrument)
+            if(index >= 0 && index < modules.length) {
+                selectedInstrument = index
+            }
         }
 
 
@@ -212,13 +219,26 @@ export async function controlchange(index, type, value) {
 
             for(let e of part._events.slice()) {
                 if(index == e.value.instrument) {
-                    part.remove(e.startOffset, e)
+                    part.remove(e.value.time, e.value)
                 }
+            }
+            
+            if(index >= 0 && index < modules.length) {
+                modules[index].group.removeChildren()
             }
         }
     }
 
     if(type == 'slider') {
+        if(index >= 0 && index < modules.length) {
+            if(modules[index].synth) {
+                let db = Tone.gainToDb(value)
+                modules[index].synth.volume.value = db
+                if(db <= -100) {
+                    modules[index].group.visible = false
+                }
+            }
+        }
     }
 
     if(type == 'special') {
@@ -226,6 +246,20 @@ export async function controlchange(index, type, value) {
         if(index == 'record') {
             recording = !recording
         }
+        if(index == 'play') {
+            part.start()
+        }
+        if(index == 'stop') {
+            part.stop()
+
+            for(let m of modules) {
+                if(m.stop) {
+                    m.stop()
+                }
+            }
+
+        }
+
 
     }
 

@@ -7,6 +7,8 @@ export function activate(shader, index) {
         $(elem).hide()
         if(i == index) {
             $(elem).show()
+            $(elem).removeClass('hidden')
+            $(elem).css({ 'display': 'flex' })
         }
     })
 

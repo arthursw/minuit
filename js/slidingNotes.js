@@ -1,3 +1,4 @@
+export let synth = { volume: { value: 1} }
 
 export let slidingNotes = []
 export let group = null
@@ -198,6 +199,13 @@ export function clearSN(){
 	}
 }
 
+export function stop(){
+	for(let slidingNote of slidingNotes) {
+		slidingNote.synth.triggerRelease()
+	}
+}
+
+
 
 
 export function activate() {
@@ -214,8 +222,14 @@ export function noteOff(noteNumber, velocity, time, duration, show) {
 export function deactivate() {
 	deactivateSN()
 }
-
+let lastVolume = null
 export function render(event) {
+	if(synth.volume.value != lastVolume) {
+		lastVolume = synth.volume.value
+		for(let s of slidingNotes) {
+			s.synth.volume.value = synth.volume.value
+		}
+	}
 	updateSN()
 }
 

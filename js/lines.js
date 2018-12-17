@@ -13,6 +13,7 @@ let noteNumber = 88
 let circles = []
 let lastCircles = []
 
+export let synth = new Tone.PluckSynth().toMaster();
 
 export let group = null
 
@@ -99,9 +100,10 @@ export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
             closestCircle.data.path.add(circle.position)
             circle.data.path = closestCircle.data.path
             circle.data.segment = closestCircle.data.path.lastSegment
-            group.addChild(closestCircle)
+            group.addChild(closestCircle.data.path)
         }
     }
+    synth.triggerAttackRelease(Tone.Frequency(noteNumber, 'midi').toNote(), duration, time, velocity)
 }
 
 export function noteOff(event) {

@@ -3,13 +3,14 @@ let parameters = {
     circleStrokeWidth: 6
 }
 
-let noteMin = 21
-let noteMax = 108
-let noteNumber = 88
+let noteMin = Tone.Frequency('A1').toMidi()
+let noteMax = Tone.Frequency('C7').toMidi()
+let noteNumber = noteMax - noteMin
 
 let circles = []
 
 export let group = null
+export let synth = new Tone.DuoSynth().toMaster()
 
 export function activate() {
     // $(paper.view.element).show()
@@ -51,6 +52,9 @@ export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
     circles.push(circle)
 
     setTimeout(()=> circle.remove(), 5000)
+
+    synth.triggerAttackRelease(Tone.Frequency(noteNumber, 'midi').toNote(), duration, time, velocity)
+    // synth.triggerAttackRelease(noteNumber, '2n', Tone.now(), 1)
 }
 
 export function noteOff(event) {

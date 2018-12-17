@@ -254,7 +254,7 @@ function changeShape(show) {
 
 export function noteOn(noteNumber, velocity, time, duration, show) {
     changeShape(show)
-    synth.triggerAttackRelease(noteNumber, duration, time, velocity)
+    synth.triggerAttackRelease(Tone.Frequency(noteNumber, 'midi'), duration, time, velocity)
 }
 
 export function noteOff(noteNumber, velocity, time, duration, show) {

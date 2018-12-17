@@ -13,6 +13,8 @@ var AudioContext = window.AudioContext || window.webkitAudioContext || false;
 var ac = new AudioContext || new webkitAudioContext;
 var eventsDiv = document.getElementById('events');
 
+export let synth = new Tone.MetalSynth().toMaster()
+
 var changeTempo = function(tempo) {
     Player.tempo = tempo;
 }
@@ -361,15 +363,21 @@ let chordDuration = Tone.Time('4n').toSeconds()
 
 export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
 
+
     let data = noteNumberOrEvent.detail
     let noteNumber = data ? data.note.number : noteNumberOrEvent
     velocity = data ? data.velocity : velocity
+
+    synth.frequency.value = Tone.Frequency(noteNumber, 'midi').toFrequency()
+    synth.triggerAttackRelease(duration, time, velocity)
+
 
     let note = noteNumber % 12
 
     let now = Tone.now()
 
-    if(now - lastTimePlayedNote > chordDuration) {
+    let newChord = now - lastTimePlayedNote > chordDuration
+    if(newChord) {
         currentNotes = []
         lastTimePlayedNote = now
     }
@@ -377,24 +385,24 @@ export function noteOn(noteNumberOrEvent, velocity, time, duration, show) {
     currentNotes.push(note)
     drawChord()
     
-    // currentChord.position = currentPosition.add(parameters.patternSize + parameters.margin)
-    // chords.addChild(currentChord.clone())
+    currentChord.position = currentPosition.add(parameters.patternSize + parameters.margin)
+    chords.addChild(currentChord.clone())
 
-    // let totalPatternSize = 2 * parameters.patternSize + parameters.margin
+    let totalPatternSize = 2 * parameters.patternSize + parameters.margin
 
-    // if(currentNotes.length == parameters.notesPerChord) {
-    //     currentNotes = []
-    //     currentPosition.x += totalPatternSize
-    //     if(currentPosition.x + totalPatternSize > paper.view.bounds.width) {
-    //         currentPosition.x = 0
-    //         currentPosition.y += totalPatternSize
-    //         if(currentPosition.y + totalPatternSize > paper.view.bounds.height) {
-    //             chords.removeChildren()
-    //             currentPosition.x = 0
-    //             currentPosition.y = 0
-    //         }
-    //     }
-    // }
+    if(newChord) {
+        currentNotes = []
+        currentPosition.x += totalPatternSize
+        if(currentPosition.x + totalPatternSize > paper.view.bounds.width) {
+            currentPosition.x = 0
+            currentPosition.y += totalPatternSize
+            if(currentPosition.y + totalPatternSize > paper.view.bounds.height) {
+                chords.removeChildren()
+                currentPosition.x = 0
+                currentPosition.y = 0
+            }
+        }
+    }
 }
 
 export function noteOff(event) {

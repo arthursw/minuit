@@ -3,8 +3,10 @@ var audioContext = Tone.context; // new (window.AudioContext || window.webkitAud
 var gainNode = audioContext.createGain();
 gainNode.connect(audioContext.destination);
 gainNode.gain.value = 0.1;
-
+let lastVolume = null
 window.blur = 0;
+
+export let synth = { volume: { value: 1} }
 
 function triangle(t) {
 	let v = Math.floor( (t / Math.PI) + 0.5 )
@@ -461,8 +463,12 @@ export function flan(noteNumber, velocity, time, duration, show, playSound) {
 	// let nWidth = (noteNumber - noteMin) / (noteMax - noteMin)
 
 	rectangle.nHeight = currentNotes.length //Math.max(1, Math.random() * 10)
+	
+	if(!velocity) {
+		velocity = 0.75
+	}
 
-	rectangle.nWidth = duration * 100
+	rectangle.nWidth = duration * 20 * (velocity + 0.2)
 
 	generateTotem(playSound, duration, noteNumber)
 
@@ -656,6 +662,10 @@ export function deactivate() {
 }
 
 export function render(event) {
+	if(synth.volume.value != lastVolume) {
+		lastVolume = synth.volume.value
+		gainNode.gain.value = Tone.dbToGain(synth.volume.value) * 0.1
+	}
 }
 
 export async function controlchange(e) {

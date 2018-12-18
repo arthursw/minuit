@@ -147,11 +147,22 @@ let onMouseDown = (event)=> {
 }
 
 let onMouseMove = (event)=> {
-    if(mouseDown && module && module.mouseMove) {
-        module.mouseMove(event)
-    }
-    if(mouseDown && soundModule && soundModule.mouseMove) {
-        soundModule.mouseMove(event)
+    if(mouseDown) {
+        // if(simulateNanoKontrol) {
+        //     let index = Math.floor(9 * event.clientX / window.innerWidth)
+        //     let type = 'knob'
+        //     let value = event.clientY / window.innerHeight
+        //     if(module && module.controlchange) {
+        //         module.controlchange(index, type, value)
+        //     }
+        // }
+
+        if(module && module.mouseMove) {
+            module.mouseMove(event)
+        }
+        if(soundModule && soundModule.mouseMove) {
+            soundModule.mouseMove(event)
+        }
     }
     // if(mouseDown && module && module.controlchange) {
     //     let x = 128 * event.clientX / window.innerWidth
@@ -432,8 +443,9 @@ let main = ()=> {
     }
 
 
-    // var gui = new dat.GUI({hideable: true});
-
+    var gui = new dat.GUI({hideable: true});
+    gui.closed = true
+    // gui.hide()
     // gui.add({ name: scripts[scriptsOrder[currentScriptOrderIndex]] }, 'name', scripts).onFinishChange((value)=> {
     //     if(value != null && value != '') {
     //         clearCanvas();
@@ -443,16 +455,42 @@ let main = ()=> {
     //     }
     // })
 
-    // let channels = {}
-    // for(let i=0 ; i<9 ; i++) {
-    //     let name = 'channel' + i
-    //     channels[name] = 0
-    //     gui.add(channels, name, 0, 128, 1).onFinishChange((value)=> {
-    //         if(module.controlchange) {
-    //             module.controlchange({ controller: { number: 14+i }, data: [value, value, value] })
-    //         }
-    //     })
-    // }
+    let channels = {}
+    let knobFolder = gui.addFolder('Knobs')
+    let sliderFolder = gui.addFolder('Sliders')
+    let buttonFolder = gui.addFolder('Buttons')
+    for(let i=0 ; i<9 ; i++) {
+        let name = 'knob' + i
+        channels[name] = 0
+        knobFolder.add(channels, name, 0, 1, 0.01).onChange((value)=> {
+            if(module.controlchange) {
+                module.controlchange(i, 'knob', value)
+            }
+        })
+        name = 'slider' + i
+        channels[name] = 0
+        sliderFolder.add(channels, name, 0, 1, 0.01).onChange((value)=> {
+            if(module.controlchange) {
+                module.controlchange(i, 'slider', value)
+            }
+        })
+        name = 'button-top' + i
+        channels[name] = ()=> {
+            if(module.controlchange) {
+                module.controlchange(i, 'button-top', 1)
+                setTimeout(module.controlchange(i, 'button-top', 0), 200)
+            }
+        }
+        buttonFolder.add(channels, name)
+        name = 'button-bottom' + i
+        channels[name] = ()=> {
+            if(module.controlchange) {
+                module.controlchange(i, 'button-bottom', 1)
+                setTimeout(module.controlchange(i, 'button-bottom', 0), 200)
+            }
+        }
+        buttonFolder.add(channels, name)
+    }
 
     // window.gui = gui;
 

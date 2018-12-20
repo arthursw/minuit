@@ -20,11 +20,17 @@ let currentTitleIndex = 0
 
 let module = null
 let soundModule = null
+let debugSocket = null
 let socket = null
 
 let send = (type, data)=> {
     let message = { type: type, data: data }
-    socket.send(JSON.stringify(message))
+    if(debugSocket.readyState == debugSocket.OPEN){
+        debugSocket.send(JSON.stringify(message))
+    }
+    if(socket.readyState == socket.OPEN){
+        socket.send(JSON.stringify(message))
+    }
 }
 
 let onMessage = (event)=> {
@@ -40,14 +46,24 @@ let onMessage = (event)=> {
         }
     } else if(type == 'sound-file-changed') {
         window.location.reload(false); 
-        // loadSoundModule(data.filename.replace('.js', ''))
-        // soundModule.deactivate()
-        // eval(data.content)
+    } else if(type == 'controlchange') {
+        if(module.controlchange) {
+            module.controlchange(data.index, data.type, data.value)
+        }
+    } else if(type == 'nanoKontrol-controlchange') {
+        onNanoKontrolChange(data, false)
+    } else if(type == 'noteon') {
+        noteOn(data, false)
+    } else if(type == 'noteoff') {
+        noteOff(data, false)
+    } else if(type == 'keyup') {
+        onKeyUp(data, false)
+    } else if(type == 'keydown') {
+        onKeyDown(data, false)
     }
 }
 
 let onWebSocketOpen = (event)=> {
-    // send('is-connected')
 }
 
 let onWebSocketClose = (event)=> {
@@ -56,7 +72,6 @@ let onWebSocketClose = (event)=> {
 
 let onWebSocketError = (event)=> {
     console.error('WebSocket error')
-    // console.error(event)
 }
 
 let loadSoundModule = (name)=> {
@@ -111,21 +126,31 @@ let loadModule = (name, numTitles)=> {
 
 }
 
-let noteOn = (event)=> {
+let noteEventToObject = (e)=> {
+    return { detail: {note: { number: e.detail.note.number }, velocity: e.detail.velocity } }
+}
+
+let noteOn = (event, sendWebSocket=true)=> {
     if(module) {
         module.noteOn(event)
     }
     if(soundModule) {
         soundModule.noteOn(event)
     }
+    if(sendWebSocket) {
+        send('noteon', noteEventToObject(event))
+    }
 }
 
-let noteOff = (event)=> {
+let noteOff = (event, sendWebSocket=true)=> {
     if(module) {
         module.noteOff(event)
     }
     if(soundModule) {
         soundModule.noteOff(event)
+    }
+    if(sendWebSocket) {
+        send('noteoff', noteEventToObject(event))
     }
 }
 
@@ -181,8 +206,23 @@ let onMouseUp = (event)=> {
     mouseDown = false
 }
 
+let keyboardEventToObject = (event)=> {
+    return {
+        key: event.key, 
+        keyCode: event.keyCode, 
+        metaKey: event.metaKey, 
+        shiftKey: event.shiftKey, 
+        ctrlKey: event.ctrlKey, 
+        altKey: event.altKey, 
+        code: event.code, 
+        type: event.type,
+        timeStamp: event.timeStamp, 
+        which: event.which
+    }
+}
+
 let instrument = null
-let onKeyDown = (event)=> {
+let onKeyDown = (event, sendWebSocket=true)=> {
     if(module && module.keyDown) {
         module.keyDown(event)
     }
@@ -231,15 +271,100 @@ let onKeyDown = (event)=> {
             // Tone.Transport.start()
         }
     }
+    if(sendWebSocket) {
+        send('keydown', keyboardEventToObject(event))
+    }
 }
 
-let onKeyUp = (event)=> {
+let onKeyUp = (event, sendWebSocket=true)=> {
     if(module && module.keyUp) {
         module.keyUp(event)
     }
     if(soundModule && soundModule.keyUp) {
         soundModule.keyUp(event)
     }
+    if(sendWebSocket) {
+        send('keyup', keyboardEventToObject(event))
+    }
+}
+
+let onNanoKontrolChange = (e, sendWebSocket=true)=> {
+    // console.log("channel: ", e.channel);
+    // console.log("controller:", e.controller.number);
+    // console.log("data:", e.data[2]);
+
+    if(e.channel == 1) {
+
+        if(e.controller.number == 47 && e.data[2] == 127) {             // previous
+            if(scriptsOrder[currentScriptOrderIndex] == 0) {
+                currentTitleIndex = Math.max(currentTitleIndex-1, 0)
+            }
+            currentScriptOrderIndex = Math.max(currentScriptOrderIndex-1, 0)
+            console.log('currentTitleIndex', currentTitleIndex, currentScriptOrderIndex, scriptsOrder[currentScriptOrderIndex], scripts[scriptsOrder[currentScriptOrderIndex]])
+            loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
+        } else if(e.controller.number == 48 && e.data[2] == 127) {      // next
+            currentScriptOrderIndex = Math.min(currentScriptOrderIndex+1, scriptsOrder.length - 1)
+            let nTitles = $('#titles').children().length
+            if(scriptsOrder[currentScriptOrderIndex] == 0) {
+                currentTitleIndex = Math.min(currentTitleIndex+1, nTitles)
+            }
+            console.log('currentTitleIndex', currentTitleIndex, currentScriptOrderIndex, scriptsOrder[currentScriptOrderIndex], scripts[scriptsOrder[currentScriptOrderIndex]])
+            loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
+        }
+
+    }
+
+    let index = 0
+    let type = 'knob'
+    let sliderIndices = [2, 3, 4, 5, 6, 8, 9, 12, 13]
+    let specialIndices = [44, 45, 46, 49]
+    let specialTypes = ['record', 'play', 'stop', 'loop']
+    let value = e.data[2] / 128
+    if(e.channel == 1) {
+        if(e.controller.number >= 14 && e.controller.number <= 22) {
+            type = 'knob'
+            index = e.controller.number-14
+        }
+        let sliderIndex = sliderIndices.indexOf(e.controller.number)
+        if(sliderIndex >= 0) {
+            type = 'slider'
+            index = sliderIndex
+        }
+        if(e.controller.number >= 23 && e.controller.number <= 31) {
+            type = 'button-top'
+            index = e.controller.number-23
+        }
+        if(e.controller.number >= 33 && e.controller.number <= 41) {
+            type = 'button-bottom'
+            index = e.controller.number-33
+        }
+
+        let specialIndex = specialIndices.indexOf(e.controller.number)
+        if(specialIndex >= 0) {
+            index = specialTypes[specialIndex]
+            type = 'special'
+        }
+    }
+
+    if(module.controlchange) {
+        module.controlchange(index, type, value)
+    }
+    if(soundModule && soundModule.controlchange) {
+        soundModule.controlchange(e)
+    }
+
+    if(sendWebSocket) {
+        send('nanoKontrol-controlchange', {channel: e.channel, controller: e.controller, data: e.data })
+    }
+}
+
+let onKeyboardNoteOn = (e)=> {
+    noteOn({ detail: e })
+}
+
+
+let onKeyboardNoteOff = (e)=> {
+    noteOff({ detail: e })
 }
 
 let main = ()=> {
@@ -314,69 +439,7 @@ let main = ()=> {
 
             // Listen to control change message on all channels
             nanoKontrol.addListener('controlchange', "all", function (e) {
-                // console.log("channel: ", e.channel);
-                // console.log("controller:", e.controller.number);
-                // console.log("data:", e.data[2]);
-
-                if(e.channel == 1) {
-
-                    if(e.controller.number == 47 && e.data[2] == 127) {             // previous
-                        if(scriptsOrder[currentScriptOrderIndex] == 0) {
-                            currentTitleIndex = Math.max(currentTitleIndex-1, 0)
-                        }
-                        currentScriptOrderIndex = Math.max(currentScriptOrderIndex-1, 0)
-                        console.log('currentTitleIndex', currentTitleIndex, currentScriptOrderIndex, scriptsOrder[currentScriptOrderIndex], scripts[scriptsOrder[currentScriptOrderIndex]])
-                        loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
-                    } else if(e.controller.number == 48 && e.data[2] == 127) {      // next
-                        currentScriptOrderIndex = Math.min(currentScriptOrderIndex+1, scriptsOrder.length - 1)
-                        let nTitles = $('#titles').children().length
-                        if(scriptsOrder[currentScriptOrderIndex] == 0) {
-                            currentTitleIndex = Math.min(currentTitleIndex+1, nTitles)
-                        }
-                        console.log('currentTitleIndex', currentTitleIndex, currentScriptOrderIndex, scriptsOrder[currentScriptOrderIndex], scripts[scriptsOrder[currentScriptOrderIndex]])
-                        loadModule(scripts[scriptsOrder[currentScriptOrderIndex]], currentTitleIndex)
-                    }
-
-                }
-
-                let index = 0
-                let type = 'knob'
-                let sliderIndices = [2, 3, 4, 5, 6, 8, 9, 12, 13]
-                let specialIndices = [44, 45, 46, 49]
-                let specialTypes = ['record', 'play', 'stop', 'loop']
-                let value = e.data[2] / 128
-                if(e.channel == 1) {
-                    if(e.controller.number >= 14 && e.controller.number <= 22) {
-                        type = 'knob'
-                        index = e.controller.number-14
-                    }
-                    let sliderIndex = sliderIndices.indexOf(e.controller.number)
-                    if(sliderIndex >= 0) {
-                        type = 'slider'
-                        index = sliderIndex
-                    }
-                    if(e.controller.number >= 23 && e.controller.number <= 31) {
-                        type = 'button-top'
-                        index = e.controller.number-23
-                    }
-                    if(e.controller.number >= 33 && e.controller.number <= 41) {
-                        type = 'button-bottom'
-                        index = e.controller.number-33
-                    }
-
-                    let specialIndex = specialIndices.indexOf(e.controller.number)
-                    if(specialIndex >= 0) {
-                        index = specialTypes[specialIndex]
-                        type = 'special'
-                    }
-                }
-
-                if(module.controlchange) {
-                    module.controlchange(index, type, value)
-                }
-                if(soundModule && soundModule.controlchange) {
-                    soundModule.controlchange(e)
-                }
+                onNanoKontrolChange(e)
             });
 
         }
@@ -403,12 +466,11 @@ let main = ()=> {
             
 
             keyboard.addListener('noteon', "all", function (e) {
-                noteOn({ detail: e })
-                
+                onKeyboardNoteOn(e)
             });
 
             keyboard.addListener('noteoff', "all", function (e) {
-                noteOff({ detail: e })
+                onKeyboardNoteOff(e)
             });
 
             keyboard.addListener('programchange', "all", function (e) {
@@ -466,6 +528,7 @@ let main = ()=> {
             if(module.controlchange) {
                 module.controlchange(i, 'knob', value)
             }
+            send('controlchange', {index: i, type: 'knob', value: value})
         })
         name = 'slider' + i
         channels[name] = 0
@@ -473,6 +536,7 @@ let main = ()=> {
             if(module.controlchange) {
                 module.controlchange(i, 'slider', value)
             }
+            send('controlchange', {index: i, type: 'slider', value: value})
         })
         name = 'button-top' + i
         channels[name] = ()=> {
@@ -480,6 +544,8 @@ let main = ()=> {
                 module.controlchange(i, 'button-top', 1)
                 setTimeout(module.controlchange(i, 'button-top', 0), 200)
             }
+            send('controlchange', {index: i, type: 'button-top', value: 1})
+            setTimeout(send('controlchange', {index: i, type: 'button-top', value: 0}), 500)
         }
         buttonFolder.add(channels, name)
         name = 'button-bottom' + i
@@ -488,6 +554,8 @@ let main = ()=> {
                 module.controlchange(i, 'button-bottom', 1)
                 setTimeout(module.controlchange(i, 'button-bottom', 0), 200)
             }
+            send('controlchange', {index: i, type: 'button-bottom', value: 1})
+            setTimeout(send('controlchange', {index: i, type: 'button-bottom', value: 0}), 500)
         }
         buttonFolder.add(channels, name)
     }
@@ -500,11 +568,18 @@ let main = ()=> {
 
     animate();
 
-    socket = new WebSocket('ws://localhost:' + 4568)
+    debugSocket = new WebSocket('ws://localhost:' + 4568)
+    debugSocket.addEventListener('message',  onMessage)
+    debugSocket.addEventListener('open',  onWebSocketOpen)
+    debugSocket.addEventListener('close',  onWebSocketClose)
+    debugSocket.addEventListener('error',  onWebSocketError)
+
+    socket = new WebSocket('ws://localhost:' + 3545)
     socket.addEventListener('message',  onMessage)
     socket.addEventListener('open',  onWebSocketOpen)
     socket.addEventListener('close',  onWebSocketClose)
     socket.addEventListener('error',  onWebSocketError)
+
 }
 
 document.addEventListener("DOMContentLoaded", main)

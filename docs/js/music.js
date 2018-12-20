@@ -172,6 +172,8 @@ export function noteOn(event) {
     let timeInMeasure = (now - timeWhenLoopStarted) % Tone.Time(mDuration).toSeconds()
     let quantizedNoteTime = Tone.Time(timeInMeasure).quantize('8n')
 
+    console.log(now, timeInMeasure, quantizedNoteTime)
+    
     // let timeInPart = now - timeWhenLoopStarted
     // let quantizedNoteTimeinPart = Tone.Time(timeInPart).quantize('8n')
     // let nowQuantized = quantizedNoteTimeinPart + timeWhenLoopStarted

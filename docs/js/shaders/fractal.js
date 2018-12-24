@@ -72,7 +72,7 @@ void main()
 	vec2 r = resolution.xy;
 	vec2 p = gl_FragCoord.xy;
 
-	float zoom = 0.1+10.0*pow(c6, 3.0);
+	float zoom = 0.1+10.0*pow(c4, 3.0);
 	vec2 q = zoom * (p+p-r) / r.y;
 
 	if(symmetry) {
@@ -95,7 +95,7 @@ void main()
 		q2 = magic(q2, im, c0, c1, c3);
 		q3 = magic(q3, im, c0, c1, c3*2.0);
 
-		float lightAmount = lightAmountMode ? c7 + 0.25 : (1.0 - c7) * 0.25
+		float lightAmount = lightAmountMode ? c5 + 0.25 : (1.0 - c5) * 0.25
 		;
 		lightAmount *= 4.0;
 		float p = mod(float(i)+realTime*10.0*s8, 4.0) > 3.0 ? power / lightAmount : power;
@@ -109,10 +109,10 @@ void main()
 		}
 	}
 
-    vec3 color = mix(o, rgb2hsv(o), c5);
+    vec3 color = mix(o, rgb2hsv(o), c6);
 
     vec3 chsv = rgb2hsv(color);
-    chsv.x = mod(chsv.x + c4*0.1, 1.0);
+    chsv.x = mod(chsv.x + c7, 1.0);
 
     color = hsv2rgb(chsv);
     

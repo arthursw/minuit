@@ -23,6 +23,11 @@ let soundModule = null
 let debugSocket = null
 let socket = null
 
+let knobControllers = []
+let controllerNamesCity = ['Diffusion', 'Change dir', 'Tail length', 'Gow', 'Line Color', 'Glow rand.', 'Color mode', 'Hue', 'Speed']
+let controllerNamesFractal = ['X', 'Y', 'Power', 'Phase', 'Zoom', 'Pulse', 'Color mode', 'Hue', 'Speed']
+
+
 let send = (type, data)=> {
     let message = { type: type, data: data }
     if(debugSocket.readyState == debugSocket.OPEN){
@@ -108,6 +113,7 @@ let loadModule = (name, numTitles)=> {
         numTitles = 0
     }
     let shader = null
+
     let moduleName = name
     if(name.indexOf('shader-') == 0) {
         shader = name.replace('shader-', '')
@@ -120,6 +126,15 @@ let loadModule = (name, numTitles)=> {
                 }
                 module = m
                 module.activate(shader, numTitles)
+                let knobNames = controllerNamesCity
+                if(shader && shader == 'fractal') {
+                    knobNames = controllerNamesFractal
+                }
+                let i=0
+                for(let knobController of knobControllers) {
+                    knobController.name(knobNames[i])
+                    i++
+                }
             })
 
     loadSoundModule(name)
@@ -367,7 +382,10 @@ let onKeyboardNoteOff = (e)=> {
     noteOff({ detail: e })
 }
 
+let vMiniVirtualChannel = 0
+
 let main = ()=> {
+
 
     if ( WEBGL.isWebGL2Available() === false ) {
         document.body.appendChild( WEBGL.getWebGL2ErrorMessage() );
@@ -467,6 +485,24 @@ let main = ()=> {
 
             keyboard.addListener('noteon', "all", function (e) {
                 onKeyboardNoteOn(e)
+
+                let noteNumber = e.note.number
+                let velocity = e.velocity
+
+                if(noteNumber == Tone.Frequency('C3').toMidi()) {
+                    vMiniVirtualChannel = Math.max(0, vMiniVirtualChannel - 1)
+                }
+                if(noteNumber == Tone.Frequency('D3').toMidi()) {
+                    vMiniVirtualChannel = Math.min(2, vMiniVirtualChannel + 1)
+                }
+                let i=0
+                for(let knobController of knobControllers) {
+                    $(knobController.domElement.parentElement.parentElement).removeClass('highlight')
+                    if(Math.floor(i / 4) == vMiniVirtualChannel) {
+                        $(knobController.domElement.parentElement.parentElement).addClass('highlight')
+                    }
+                    i++
+                }
             });
 
             keyboard.addListener('noteoff', "all", function (e) {
@@ -482,6 +518,37 @@ let main = ()=> {
                 console.log("channel: ", e.channel);
                 console.log("controller:", e.controller.number);
                 console.log("data:", e.data.toString());
+
+                let index = 0
+                let type = 'knob'
+                let value = e.data[2] / 128
+                let padNumbers = [36, 38, 42, 46]
+
+                if(e.channel == 1) {
+                    if(e.controller.number >= 14 && e.controller.number <= 17) {
+                        type = 'knob'
+                        index = e.controller.number-14 + 4 * vMiniVirtualChannel
+                    }
+                    let padIndex = padNumbers.indexOf(e.controller.number)
+
+                    if(padIndex >= 0) {
+                        type = padIndex % 2 == 0 ? 'button-top' : 'button-bottom'
+                        index = Math.floor(padIndex / 2)
+                    }
+
+                }
+
+                if(module.controlchange) {
+                    module.controlchange(index, type, value)
+                }
+                if(soundModule && soundModule.controlchange) {
+                    soundModule.controlchange(e)
+                }
+
+                // if(sendWebSocket) {
+                //     send('nanoKontrol-controlchange', {channel: e.channel, controller: e.controller, data: e.data })
+                // }
+
             })
         }
     })
@@ -521,15 +588,21 @@ let main = ()=> {
     let knobFolder = gui.addFolder('Knobs')
     let sliderFolder = gui.addFolder('Sliders')
     let buttonFolder = gui.addFolder('Buttons')
+    
+
     for(let i=0 ; i<9 ; i++) {
         let name = 'knob' + i
         channels[name] = 0
-        knobFolder.add(channels, name, 0, 1, 0.01).onChange((value)=> {
+        let knobController = knobFolder.add(channels, name, 0, 1, 0.01).onChange((value)=> {
             if(module.controlchange) {
                 module.controlchange(i, 'knob', value)
             }
             send('controlchange', {index: i, type: 'knob', value: value})
         })
+        if(i<4) {
+            $(knobController.domElement.parentElement.parentElement).addClass('highlight')
+        }
+        knobControllers.push(knobController)
         name = 'slider' + i
         channels[name] = 0
         sliderFolder.add(channels, name, 0, 1, 0.01).onChange((value)=> {
@@ -542,23 +615,24 @@ let main = ()=> {
         channels[name] = ()=> {
             if(module.controlchange) {
                 module.controlchange(i, 'button-top', 1)
-                setTimeout(module.controlchange(i, 'button-top', 0), 200)
+                setTimeout(()=> module.controlchange(i, 'button-top', 0), 200)
             }
             send('controlchange', {index: i, type: 'button-top', value: 1})
-            setTimeout(send('controlchange', {index: i, type: 'button-top', value: 0}), 500)
+            setTimeout(()=> send('controlchange', {index: i, type: 'button-top', value: 0}), 500)
         }
         buttonFolder.add(channels, name)
         name = 'button-bottom' + i
         channels[name] = ()=> {
             if(module.controlchange) {
                 module.controlchange(i, 'button-bottom', 1)
-                setTimeout(module.controlchange(i, 'button-bottom', 0), 200)
+                setTimeout(()=> module.controlchange(i, 'button-bottom', 0), 200)
             }
             send('controlchange', {index: i, type: 'button-bottom', value: 1})
-            setTimeout(send('controlchange', {index: i, type: 'button-bottom', value: 0}), 500)
+            setTimeout(()=> send('controlchange', {index: i, type: 'button-bottom', value: 0}), 500)
         }
         buttonFolder.add(channels, name)
     }
+
 
     // window.gui = gui;
 

@@ -536,8 +536,9 @@ export async function controlchange(index, type, value) {
             instrument = index
             initializeInstrument()
 
-            accumulators[index]++
             console.log('accumulator ' + index + ': ' + accumulators[index])
+            accumulators[index]++
+            
             
             if(shaderName == 'fractal' && index == 8) {
                 accumulators[1] = 1
@@ -603,9 +604,8 @@ export async function controlchange(index, type, value) {
                     currentTime = 0
                 }
             }
-
-            accumulators[index]--
             console.log('accumulator ' + index + ': ' + accumulators[index])
+            accumulators[index]--
 
             if(shaderName == 'fractal' && index == 8) {
                 accumulators[1] = 0
